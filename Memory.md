@@ -36,15 +36,18 @@
 
 | 任务 | 实现文件 | 实现方式 | 接口说明 |
 |------|----------|----------|----------|
-| 1.1 项目结构 | `data/`, `requirements.txt` | data 放 PDF，requirements 含 pypdf | - |
+| 1.1 项目结构 | `data/`, `requirements.txt` | data 放 PDF，requirements 含 pypdf、pytest | - |
 | 1.2 Document Loader | `loader.py` | pypdf，`load_pdf(path)` / `load_pdfs_from_dir(dir)`，按页拆为 Document | 输入路径 → `List[Document]` |
-| 1.3 Chunking | `chunking.py` | `chunk_document()` / `chunk_documents()`，chunk_size=500，overlap=50，优先在句末切断 | 输入 Document → `List[Chunk]` |
+| 1.3 Chunking | `chunking.py` | `chunk_document()` / `chunk_documents()`，chunk_size=500，overlap=50，优先在句末切断；另有 `chunks_to_dicts` / `dicts_to_chunks` 供持久化用 | 输入 Document → `List[Chunk]` |
 | 1.4 Chunk 持久化 | `ts20260301_storage_chunks.py` | 实现 `save_chunks(List[dict], path)` / `load_chunks(path)`，JSON 可读存储，文件不存在报错 | `List[dict]` ↔ JSON |
 | 1.5 联调 | `chunking.py` | 主流程支持缓存：`artifacts/chunks/chunks.json` 存在则 load，不存在则 chunk 后保存；兼容旧路径 `storage/chunks.json` 自动迁移 | - |
+| 1.6 单元测试与说明 | `tests/` | test_loader、test_chunking、test_storage_chunks、conftest；约 30 个用例；`pytest tests/ -v`，加 `-s` 可看中英双语 [TEST START]/[INPUT]/[ACTION]/[EXPECTED]/[PASS]；详见 tests/README.md | - |
 
-**Chunk 结构**：`{ text, source, page }`
+**Document 结构**（loader 产出）：`content: str`, `source: str`, `page: int`
 
-**Phase 1 单元测试**：`tests/test_loader.py`、`tests/test_chunking.py`、`tests/test_storage_chunks.py`，运行 `pytest tests/ -v`
+**Chunk 结构**（chunking 产出）：`{ text, source, page }`
+
+**Phase 1 单元测试**：`tests/test_loader.py`、`tests/test_chunking.py`、`tests/test_storage_chunks.py`、`tests/conftest.py`；约 30 个用例；运行 `pytest tests/ -v`，加 `-s` 可看中英双语说明；覆盖清单见 `tests/README.md`
 
 **持久化规范（后续必须沿用）**：
 - 中间结果（chunks/vector 等）都要提供 `save_xxx` / `load_xxx`
@@ -91,7 +94,8 @@
 
 ## 技术栈与架构
 
-- **Phase 1**：pypdf（PDF 解析）、Python dataclass（Document / Chunk）
+- **Phase 1**：pypdf（PDF 解析）、Python dataclass（Document / Chunk）、pytest（单元测试）
+- **当前仓库结构（Phase 1 完成后）**：`data/`、`artifacts/chunks/`、`loader.py`、`chunking.py`、`ts20260301_storage_chunks.py`、`tests/`（含 conftest、test_loader、test_chunking、test_storage_chunks）、`requirements.txt`（pypdf、pytest）
 - 其余见 [Outline.md](./Outline.md)
 
 ---

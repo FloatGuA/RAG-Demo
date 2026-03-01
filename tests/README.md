@@ -29,7 +29,7 @@ python -m pytest tests/ -v
 
 ## 2. 在 Cursor / VS Code 里运行
 
-1. 打开 `tests/test_loader.py` 或 `tests/test_chunking.py`
+1. 打开 `tests/test_loader.py`、`tests/test_chunking.py` 或 `tests/test_storage_chunks.py`
 2. 在测试函数旁点击 `Run Test` / `Debug Test`
 3. 在 `Test Explorer` 或 `Output` 面板查看结果
 

@@ -19,6 +19,9 @@
 - [x] **1.5 Chunk 持久化**：实现并接入 `save_chunks/load_chunks`
   - 文件：`ts20260301_storage_chunks.py`
   - 主流程：有 `artifacts/chunks/chunks.json` 则加载，否则生成并保存（兼容旧 `storage/chunks.json`）
+- [x] **1.6 单元测试与测试说明**：Phase 1 全模块单元测试 + 测试文档
+  - 文件：`tests/test_loader.py`、`tests/test_chunking.py`、`tests/test_storage_chunks.py`、`tests/conftest.py`、`tests/README.md`
+  - 约 30 个用例；`pytest tests/ -v`；加 `-s` 可看中英双语 [TEST START]/[INPUT]/[ACTION]/[EXPECTED]/[PASS]
 
 ---
 
@@ -31,6 +34,7 @@
 - [ ] **2.2**：集成 FAISS 作为向量存储
 - [ ] **2.2.1 Vector 持久化规范**：实现 `save_vectors/load_vectors`（与 chunk 持久化同标准）
 - [ ] **2.3**：实现 offline pipeline：PDF → Chunk → Embedding → 持久化
+- [ ] **2.4 单元测试**：为 embedding / 向量存储 / 持久化 编写测试，补入 `tests/`，跑通 `pytest tests/ -v`
 
 ---
 
@@ -51,6 +55,7 @@
 - [ ] **3.4 模块7 Response Formatter**：整合答案与来源
   - 输出：`{ answer, sources }`
 - [ ] **3.5**：跑通完整 online pipeline：Query → Retrieve → LLM → Answer
+- [ ] **3.6 单元测试**：为 retriever、prompt、generator、formatter 编写测试，补入 `tests/`，跑通 `pytest tests/ -v`
 
 ---
 
@@ -64,12 +69,14 @@
   - 超出 context → 输出 "I don't know"
 - [ ] **4.4**：主入口与流程串联
   - 文件：`app.py`
+- [ ] **4.5 单元测试**：为 app / UI 流程编写测试（含必要 mock），补入 `tests/`，跑通 `pytest tests/ -v`
 
 ---
 
 ## 工作规范
 
 - **每完成一个模块，必须跑 `pytest tests/ -v` 自测，全部通过后再推进。**
+- **每个 Phase 结束时都要为该阶段新增模块编写单元测试**（如 Phase 2 测 embedding/向量持久化，Phase 3 测 retriever/prompt/generator/formatter，Phase 4 测 app），并更新 `tests/` 与 `tests/README.md`。
 - **中间结果统一存放到 `artifacts/` 下对应子目录（如 `artifacts/chunks/`、`artifacts/vectors/`）。**
 
 ## 设计要点（实现时需遵守）
@@ -87,12 +94,22 @@
 
 ```
 rag-demo/
-├── data/
+├── data/                    # 课程 PDF
+├── artifacts/               # 中间结果（Phase 1 已有 chunks/）
+│   └── chunks/
 ├── loader.py
 ├── chunking.py
+├── ts20260301_storage_chunks.py
 ├── embedding.py
 ├── retriever.py
 ├── prompt.py
 ├── generator.py
-└── app.py
+├── app.py
+├── tests/
+│   ├── conftest.py
+│   ├── test_loader.py
+│   ├── test_chunking.py
+│   ├── test_storage_chunks.py
+│   └── README.md
+└── requirements.txt
 ```
