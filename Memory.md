@@ -12,16 +12,16 @@
 
 | 字段 | 内容 |
 |------|------|
-| **当前阶段** | Phase 3：Day 3 — Retrieval + LLM |
-| **上次完成** | Phase 2 全部完成（2.1/2.2/2.2.1/2.3/2.4） |
-| **下一步任务** | 3.1 模块4 Retriever：基于向量检索 Top-k chunks |
+| **当前阶段** | Phase 4：Day 4 — UI + 加分项 |
+| **上次完成** | Phase 3 全部完成（3.1/3.2/3.3/3.4/3.5/3.6） |
+| **下一步任务** | 4.1 实现简单 UI（先 CLI 或 Web） |
 | **最后更新** | 2026-03-01 |
 
 ### 阶段完成情况
 
 - Phase 1（Loader + Chunking）：已完成
 - Phase 2（Embedding + FAISS）：已完成
-- Phase 3（Retrieval + LLM）：未开始
+- Phase 3（Retrieval + LLM）：已完成
 - Phase 4（UI + 加分项）：未开始
 
 ---
@@ -61,17 +61,18 @@
 | 2.2 FAISS | `embedding.py` / `main.py` | 已实现 `build_faiss_index()` / `search_faiss()` / `save_faiss_index()` / `load_faiss_index()`；环境无 faiss 时可优雅降级 | `artifacts/index/faiss.index` |
 | 2.2.1 向量持久化 | `embedding.py` | 已实现 `save_vectors()` / `load_vectors()`，JSON 可读存储、缺失文件报错 | VectorStore ↔ JSON |
 | 2.3 Offline pipeline | `main.py` / `embedding.py` | 已接入：chunk 后自动 build/load vectors（`artifacts/vectors/vectors.json`）并尝试 FAISS 索引（`artifacts/index/faiss.index`）；cache-first | - |
-| 2.4 单元测试 | `tests/test_embedding.py` | 覆盖向量化、向量持久化、FAISS 可用/不可用路径；当前全量测试通过 | 37 passed |
+| 2.4 单元测试 | `tests/test_embedding.py` | 覆盖向量化、向量持久化、FAISS 可用/不可用路径；当前全量测试通过 | 49 passed |
 
 ### Phase 3：Retrieval + LLM
 
 | 任务 | 实现文件 | 实现方式 | 接口说明 |
 |------|----------|----------|----------|
-| 3.1 Retriever | `retriever.py` | （待填：top_k、相似度计算） | query → Top-k Chunks |
-| 3.2 Prompt Builder | `prompt.py` | （待填：prompt 模板） | query + chunks → prompt |
-| 3.3 LLM Generator | `generator.py` | （待填：API/本地模型） | prompt → answer |
-| 3.4 Response Formatter | （待填） | （待填） | answer + chunks → `{ answer, sources }` |
-| 3.5 Online pipeline | - | （待填：调用顺序） | - |
+| 3.1 Retriever | `retriever.py` | `retrieve_top_k()`：默认使用向量内积排序；可选接入 FAISS 索引检索；返回 text/source/page/score | query + VectorStore → Top-k Chunks |
+| 3.2 Prompt Builder | `prompt.py` | `build_prompt()`：拼接 query + contexts，内置 grounded 约束与 `I don't know` 回退规则 | query + chunks → prompt |
+| 3.3 LLM Generator | `generator.py` | `generate_answer()` 支持 `local/openai/openai_compatible`，支持 `.env`、重试、超时、失败回退本地 | prompt (+contexts) → answer |
+| 3.4 Response Formatter | `formatter.py` | `format_response()`：输出 `{answer, sources}`，并按 source/page 去重 | answer + chunks → `{ answer, sources }` |
+| 3.5 Online pipeline | `main.py` | 支持 `--llm-provider`、`--llm-base-url`、`--llm-model`、`--no-llm-fallback-local`；串联在线流程 | query → answer + sources |
+| 3.6 单元测试 | `tests/test_retriever.py` / `tests/test_prompt.py` / `tests/test_generator.py` | 覆盖检索、prompt 组装、provider 校验、无 key 回退与来源格式化；全量通过 | 49 passed |
 
 ### Phase 4：UI + 加分项
 

@@ -12,11 +12,15 @@
 
 ## 3. 核心实现（How）
 
-当前 Phase 1 测试文件：
+当前测试文件（Phase 1 + Phase 2 + Phase 3）：
 
 - `tests/test_loader.py`：测试 `loader.py`
 - `tests/test_chunking.py`：测试 `chunking.py`
 - `tests/test_storage_chunks.py`：测试 `chunking.py` 中 `save_chunks/load_chunks`
+- `tests/test_embedding.py`：测试 `embedding.py`（向量化 + 向量持久化 + FAISS）
+- `tests/test_retriever.py`：测试 `retriever.py`（Top-k 检索）
+- `tests/test_prompt.py`：测试 `prompt.py`（prompt 组装）
+- `tests/test_generator.py`：测试 `generator.py` + `formatter.py`
 - `tests/conftest.py`：公共 fixtures（临时 PDF、示例 Document 等）
 
 运行命令：
@@ -30,7 +34,7 @@
 
 ## 5. 模块关系（上下游）
 
-- 上游：项目需求与模块设计（loader/chunking/main）
+- 上游：项目需求与模块设计（loader/chunking/embedding/retriever/prompt/generator）
 - 下游：
   - 开发流程：作为每次改动后的质量门禁
   - 文档流程：`tests/README.md` 记录运行方法与覆盖清单

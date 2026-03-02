@@ -9,10 +9,10 @@
 1. `loader`：读取 PDF，输出 `List[Document]`
 2. `chunking`：将 `Document` 切分为 `List[Chunk]`
 3. `embedding`：将 `Chunk` 向量化并写入向量存储（已实现）
-4. `retriever`：根据 query 检索 Top-k 相关片段（待实现）
-5. `prompt`：将 query + contexts 组装为提示词（待实现）
-6. `generator`：调用 LLM 生成答案（待实现）
-7. `formatter`：输出答案 + 来源（待实现）
+4. `retriever`：根据 query 检索 Top-k 相关片段（已实现）
+5. `prompt`：将 query + contexts 组装为提示词（已实现）
+6. `generator`：调用 LLM 生成答案（已实现最小可替换版本）
+7. `formatter`：输出答案 + 来源（已实现）
 
 ## 模块教程列表
 
@@ -27,8 +27,8 @@
 
 ## 当前实现状态
 
-- 已实现：`loader`、`chunking`、`main`、`embedding`、chunk/vector 持久化、FAISS 接口（可选依赖）
-- 待实现：`retriever`、`prompt`、`generator`、`formatter`
+- 已实现：`loader`、`chunking`、`main`、`embedding`、`retriever`、`prompt`、`generator`、`formatter`、chunk/vector 持久化、FAISS 接口（可选依赖）
+- 待实现：UI 与应用层（Phase 4）
 
 ## 当前实现状态矩阵
 
@@ -39,10 +39,11 @@
 | Chunk 持久化 | 已实现（内联） | `chunking.py` |
 | Main 流程 | 已实现 | `main.py` |
 | Embedding | 已实现 | `embedding.py` |
-| Retriever | 待实现 | `retriever.py` |
-| Prompt Builder | 待实现 | `prompt.py` |
-| Generator | 待实现 | `generator.py` |
-| Testing | 已实现（Phase 1 + Phase 2） | `tests/` |
+| Retriever | 已实现 | `retriever.py` |
+| Prompt Builder | 已实现 | `prompt.py` |
+| Generator | 已实现（多 provider） | `generator.py` |
+| Formatter | 已实现 | `formatter.py` |
+| Testing | 已实现（Phase 1 + Phase 2 + Phase 3） | `tests/` |
 
 ## 建议阅读顺序
 

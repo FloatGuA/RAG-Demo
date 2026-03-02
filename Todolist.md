@@ -47,22 +47,28 @@
 
 ## Phase 3：Day 3 — Retrieval + LLM
 
-- [ ] **3.1 模块4 Retriever**：实现检索
+- [x] **3.1 模块4 Retriever**：实现检索
   - 输入：query + VectorStore
   - Top-k 相似度检索
   - 文件：`retriever.py`
-- [ ] **3.2 模块5 Prompt Builder**：构建 RAG prompt
+- [x] **3.2 模块5 Prompt Builder**：构建 RAG prompt
   - 输入：query + chunks
   - 输出：prompt string
   - 文件：`prompt.py`
-- [ ] **3.3 模块6 LLM Generator**：调用 LLM 生成回答
+- [x] **3.3 模块6 LLM Generator**：调用 LLM 生成回答
   - 输入：prompt
   - 输出：answer
   - 文件：`generator.py`
-- [ ] **3.4 模块7 Response Formatter**：整合答案与来源
+  - 支持：`local` / `openai` / `openai_compatible`，可通过 `.env` 配置
+- [x] **3.4 模块7 Response Formatter**：整合答案与来源
+  - 文件：`formatter.py`
   - 输出：`{ answer, sources }`
-- [ ] **3.5**：跑通完整 online pipeline：Query → Retrieve → LLM → Answer
-- [ ] **3.6 单元测试**：为 retriever / prompt / generator / formatter 编写测试并通过
+- [x] **3.5**：跑通完整 online pipeline：Query → Retrieve → LLM → Answer
+  - 主流程：`main.py` 支持 `--query` / `--top-k` / `--llm-provider` / `--llm-base-url` / `--llm-model`
+  - 运行：`python main.py --query "your question" --top-k 3 --no-llm-fallback-local`
+- [x] **3.6 单元测试**：为 retriever / prompt / generator / formatter 编写测试并通过
+  - 文件：`tests/test_retriever.py`、`tests/test_prompt.py`、`tests/test_generator.py`
+  - 结果：`python -m pytest tests/ -v` 通过（当前 49 passed）
 
 ---
 

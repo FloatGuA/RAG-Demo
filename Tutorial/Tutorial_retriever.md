@@ -12,20 +12,19 @@
 
 ## 3. 核心实现（How）
 
-当前状态：**待实现**。建议实现以下接口：
+当前状态：**已实现（Phase 3）**。核心接口：
 
-- `retrieve(query: str, top_k: int = 5) -> list[Chunk]`
-- `retrieve_with_scores(query: str, top_k: int = 5) -> list[tuple[Chunk, float]]`
+- `retrieve_top_k(query, store, top_k=5, faiss_index=None) -> list[dict]`
 
 关键点：
 
-- query embedding 与文档 embedding 使用同一模型
-- 先 ANN 召回，再按需做 rerank（可选）
-- 返回结果含 `text/source/page`
+- query embedding 与文档 embedding 复用 `embedding.embed_text`
+- 有 `faiss_index` 时优先走 FAISS 检索；否则回退到纯 Python 向量内积排序
+- 返回结果包含 `index/score/text/source/page`
 
 ## 4. 数据流（Data Flow）
 
-`query -> query embedding -> vector search -> Top-k chunks(+score) -> prompt builder`
+`query -> query embedding -> (faiss search | dot-product ranking) -> Top-k chunks(+score) -> prompt builder`
 
 ## 5. 模块关系（上下游）
 

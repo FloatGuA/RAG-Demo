@@ -12,15 +12,15 @@
 
 ## 3. 核心实现（How）
 
-当前状态：**待实现**。建议实现以下接口：
+当前状态：**已实现（Phase 3）**。核心接口：
 
-- `build_prompt(query: str, chunks: list[Chunk|dict]) -> str`
+- `build_prompt(query: str, contexts: list[dict], max_context_chars: int = 4000) -> str`
 
-建议模板包含：
+当前模板包含：
 
 - 系统约束（仅用 context）
 - 不确定时输出 "I don't know"
-- 要求给出来源（source/page）
+- context 结构化块（含 source/page）
 
 ## 4. 数据流（Data Flow）
 

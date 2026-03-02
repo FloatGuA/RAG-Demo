@@ -2,13 +2,13 @@
 
 ## 1. 模块作用（What）
 
-`main.py` 是当前项目 Phase 1 的统一入口，用于串联 loader + chunking + 持久化。
+`main.py` 是当前项目统一入口，用于串联 offline pipeline（loader/chunking/embedding/index）和 online pipeline（retrieval/prompt/generator/formatter）。
 
 ## 2. 设计思路（Why）
 
 - 提供单一可执行入口，便于演示与后续扩展。
 - 采用 cache-first，避免重复处理 PDF，提升迭代效率。
-- 提供参数化能力（chunk size / overlap / preview / force rebuild）。
+- 提供参数化能力（chunk 参数 + query 参数 + LLM provider 参数）。
 
 ## 3. 核心实现（How）
 
@@ -21,21 +21,23 @@
   - `--chunk-size`
   - `--overlap`
   - `--preview`
+  - `--query` / `--top-k`
+  - `--llm-provider` / `--llm-model` / `--llm-base-url`
+  - `--llm-timeout` / `--llm-max-retries` / `--no-llm-fallback-local`
 - `main()`：
-  - 执行流程并打印来源（cache/migrated/rebuild）和预览
+  - 执行离线流程并打印来源（cache/migrated/rebuild）和预览
+  - 若传入 query，则执行在线问答并输出 answer + sources
   - 对控制台编码做安全输出处理，避免 Windows 终端异常字符报错
 
 ## 4. 数据流（Data Flow）
 
-`CLI args -> build_or_load_chunks -> List[Chunk] -> console preview`
+`CLI args -> offline build/load -> (optional) online query -> answer + sources`
 
 内部调用链：
 
-`main.py -> loader.py + chunking.py -> artifacts/chunks/chunks.json`
+`main.py -> loader/chunking/embedding/retriever/prompt/generator/formatter -> artifacts/*`
 
 ## 5. 模块关系（上下游）
 
-- 上游：命令行参数、`data/`、已有缓存文件
-- 下游：
-  - 当前：控制台输出与本地缓存
-  - 后续：可扩展为 embedding/retrieval 的统一 pipeline 入口
+- 上游：命令行参数、`.env` 配置、`data/`、已有缓存文件
+- 下游：控制台输出、本地缓存、在线问答结果

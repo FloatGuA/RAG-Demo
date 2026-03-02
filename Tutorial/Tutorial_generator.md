@@ -12,15 +12,17 @@
 
 ## 3. 核心实现（How）
 
-当前状态：**待实现**。建议实现以下接口：
+当前状态：**已实现可插拔版本（Phase 3）**。核心接口：
 
-- `generate(prompt: str) -> str`
-- 可扩展：`generate_with_meta(prompt: str) -> dict`
+- `generate_answer(prompt, contexts, provider, model, base_url, timeout, max_retries, fallback_to_local)`
 
-建议输出：
+当前行为：
 
-- `answer` 文本
-- （可选）模型名、token 消耗、耗时等元信息
+- 无上下文：返回 `I don't know`
+- `provider=local`：返回首条 context 的首句（离线联调）
+- `provider=openai`：调用 OpenAI 官方 API
+- `provider=openai_compatible`：调用兼容 OpenAI 协议的第三方/本地服务
+- 支持 `.env` 自动读取与调用失败回退（可关闭回退）
 
 ## 4. 数据流（Data Flow）
 

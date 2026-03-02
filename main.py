@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 import sys
 
@@ -23,7 +24,11 @@ from embedding import (
     save_faiss_index,
     save_vectors,
 )
+from formatter import format_response
+from generator import generate_answer
 from loader import load_pdfs_from_dir
+from prompt import build_prompt
+from retriever import retrieve_top_k
 
 
 CHUNKS_PATH = Path("artifacts/chunks/chunks.json")
@@ -104,7 +109,7 @@ def build_or_load_faiss_index(
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="RAG-Demo Phase 1 主流程入口")
+    parser = argparse.ArgumentParser(description="RAG-Demo 主流程入口（offline + online）")
     parser.add_argument(
         "--force-rebuild",
         action="store_true",
@@ -134,6 +139,71 @@ def parse_args() -> argparse.Namespace:
         default=256,
         help="向量维度（默认 256）",
     )
+    parser.add_argument(
+        "--query",
+        type=str,
+        default="",
+        help="可选：执行在线查询（Query → Retrieval → Prompt → Generator）",
+    )
+    parser.add_argument(
+        "--top-k",
+        type=int,
+        default=3,
+        help="在线检索返回的 Top-k 条上下文数量（默认 3）",
+    )
+    parser.add_argument(
+        "--use-openai",
+        action="store_true",
+        help="兼容旧参数：等价于 --llm-provider openai",
+    )
+    parser.add_argument(
+        "--llm-provider",
+        type=str,
+        default=os.getenv("LLM_PROVIDER", "local"),
+        choices=["local", "openai", "openai_compatible"],
+        help="LLM provider：local/openai/openai_compatible",
+    )
+    parser.add_argument(
+        "--llm-model",
+        type=str,
+        default=os.getenv("LLM_MODEL", "gpt-4o-mini"),
+        help="模型名（对 openai/openai_compatible 生效）",
+    )
+    parser.add_argument(
+        "--llm-base-url",
+        type=str,
+        default=os.getenv("LLM_BASE_URL", ""),
+        help="OpenAI 兼容接口的 base_url（如本地服务）",
+    )
+    parser.add_argument(
+        "--llm-api-key-env",
+        type=str,
+        default="OPENAI_API_KEY",
+        help="读取 API Key 的环境变量名（默认 OPENAI_API_KEY）",
+    )
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=0.2,
+        help="采样温度（默认 0.2）",
+    )
+    parser.add_argument(
+        "--llm-timeout",
+        type=float,
+        default=30.0,
+        help="LLM 请求超时时间秒（默认 30）",
+    )
+    parser.add_argument(
+        "--llm-max-retries",
+        type=int,
+        default=1,
+        help="LLM 失败重试次数（默认 1）",
+    )
+    parser.add_argument(
+        "--no-llm-fallback-local",
+        action="store_true",
+        help="LLM 调用失败时不回退到本地占位实现，直接报错",
+    )
     return parser.parse_args()
 
 
@@ -153,7 +223,7 @@ def main() -> None:
         force_rebuild=args.force_rebuild,
         dim=args.embed_dim,
     )
-    _, faiss_source = build_or_load_faiss_index(
+    faiss_index, faiss_source = build_or_load_faiss_index(
         vector_store,
         force_rebuild=args.force_rebuild,
     )
@@ -186,6 +256,42 @@ def main() -> None:
             errors="replace",
         )
         print(f"  - [{c.source} p.{c.page}] {safe_preview_text}...")
+
+    if args.query.strip():
+        if args.top_k <= 0:
+            raise ValueError("top_k 必须为正整数")
+        retrieved = retrieve_top_k(
+            args.query,
+            vector_store,
+            top_k=args.top_k,
+            faiss_index=None if faiss_source == "unavailable" else faiss_index,
+        )
+        prompt_text = build_prompt(args.query, retrieved)
+        provider = "openai" if args.use_openai else args.llm_provider
+        answer = generate_answer(
+            prompt_text,
+            contexts=retrieved,
+            provider=provider,
+            model=args.llm_model,
+            temperature=args.temperature,
+            base_url=args.llm_base_url or None,
+            api_key_env=args.llm_api_key_env,
+            timeout=args.llm_timeout,
+            max_retries=args.llm_max_retries,
+            fallback_to_local=not args.no_llm_fallback_local,
+        )
+        response = format_response(answer, retrieved)
+
+        print("\n[ONLINE] 查询完成")
+        print(f"[ONLINE] Query: {args.query}")
+        print(f"[ONLINE] Retrieved: {len(retrieved)}")
+        print(f"[ONLINE] Answer: {response['answer']}")
+        if response["sources"]:
+            print("[ONLINE] Sources:")
+            for s in response["sources"]:
+                print(f"  - {s['source']} p.{s['page']}")
+        else:
+            print("[ONLINE] Sources: (none)")
 
 
 if __name__ == "__main__":

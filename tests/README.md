@@ -6,6 +6,9 @@
 - `test_chunking.py`：`chunking.py` 的测试
 - `test_storage_chunks.py`：`chunking.py` 中 `save_chunks/load_chunks` 的测试
 - `test_embedding.py`：`embedding.py`（向量化 + 向量持久化 + FAISS 集成）的测试
+- `test_retriever.py`：`retriever.py`（Top-k 检索）的测试
+- `test_prompt.py`：`prompt.py`（RAG prompt 组装）的测试
+- `test_generator.py`：`generator.py` + `formatter.py`（回答生成与来源格式化）的测试
 - `conftest.py`：测试共用的 fixtures
 
 ---
@@ -137,3 +140,35 @@ pytest tests/ -v
 - FAISS 集成：
   - 无 FAISS 环境时可正确报错/降级路径可测
   - 有 FAISS 环境时索引持久化与检索行为可测（条件跳过）
+
+### `test_retriever.py`
+
+- 基础检索：
+  - `retrieve_top_k` 可返回 Top-k 结果
+  - 返回字段完整：`index/score/text/source/page`
+  - 分数排序正确（降序）
+- 边界校验：
+  - 空 query 返回空列表
+  - 非法 `top_k`（<=0）抛 `ValueError`
+- FAISS 路径：
+  - FAISS 可用时可通过 `faiss_index` 检索
+
+### `test_prompt.py`
+
+- Prompt 内容：
+  - 包含 query 与 context（含 `source/page`）
+  - 空 context 时包含 `[No context retrieved]`
+  - 含 grounded 规则：上下文不足时输出 `I don't know`
+- 参数校验：
+  - 非法 `max_context_chars` 抛 `ValueError`
+
+### `test_generator.py`
+
+- 生成行为：
+  - 无 context 返回 `I don't know`
+  - `provider=local` 时返回首条 context 首句（占位实现）
+  - `provider=openai` 且缺 key 时可回退本地（fallback）
+  - 非法 provider 抛 `ValueError`
+- 格式化行为：
+  - `format_response` 输出 `{answer, sources}`
+  - `sources` 按 `source/page` 去重
