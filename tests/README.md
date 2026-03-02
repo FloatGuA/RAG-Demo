@@ -9,6 +9,8 @@
 - `test_retriever.py`：`retriever.py`（Top-k 检索）的测试
 - `test_prompt.py`：`prompt.py`（RAG prompt 组装）的测试
 - `test_generator.py`：`generator.py` + `formatter.py`（回答生成与来源格式化）的测试
+- `test_app.py`：`app.py`（CLI 应用入口与输出渲染）的测试
+- `test_web_app.py`：`web_app.py`（Web UI 辅助函数）的测试
 - `conftest.py`：测试共用的 fixtures
 
 ---
@@ -172,3 +174,18 @@ pytest tests/ -v
 - 格式化行为：
   - `format_response` 输出 `{answer, sources}`
   - `sources` 按 `source/page` 去重
+
+### `test_app.py`
+
+- 应用流程：
+  - `answer_with_store` 返回结构化 `{answer, sources}`
+  - 空查询路径满足 grounded 行为（返回 `I don't know`）
+  - 非法 `top_k` 抛 `ValueError`
+- 输出渲染：
+  - `render_response` 能稳定渲染 `Answer/Sources` 文本
+
+### `test_web_app.py`
+
+- Web UI 辅助函数：
+  - `format_sources_lines` 在有/无来源时输出稳定文本
+  - `build_assistant_message` 正确组合 answer + sources 展示内容

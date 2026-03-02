@@ -23,12 +23,13 @@
 - [Tutorial_retriever.md](./Tutorial_retriever.md)
 - [Tutorial_prompt.md](./Tutorial_prompt.md)
 - [Tutorial_generator.md](./Tutorial_generator.md)
+- [Tutorial_app.md](./Tutorial_app.md)
 - [Tutorial_testing.md](./Tutorial_testing.md)
 
 ## 当前实现状态
 
 - 已实现：`loader`、`chunking`、`main`、`embedding`、`retriever`、`prompt`、`generator`、`formatter`、chunk/vector 持久化、FAISS 接口（可选依赖）
-- 待实现：UI 与应用层（Phase 4）
+- 待实现：更高级交互能力（如多会话持久化、登录态、反馈闭环）
 
 ## 当前实现状态矩阵
 
@@ -43,7 +44,9 @@
 | Prompt Builder | 已实现 | `prompt.py` |
 | Generator | 已实现（多 provider） | `generator.py` |
 | Formatter | 已实现 | `formatter.py` |
-| Testing | 已实现（Phase 1 + Phase 2 + Phase 3） | `tests/` |
+| App (CLI UI) | 已实现 | `app.py` |
+| App (Web Chat UI) | 已实现（Streamlit） | `web_app.py` |
+| Testing | 已实现（Phase 1 + Phase 2 + Phase 3 + Phase 4 + Web UI） | `tests/` |
 
 ## 建议阅读顺序
 

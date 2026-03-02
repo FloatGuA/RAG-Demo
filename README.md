@@ -9,12 +9,14 @@
 - [Todolist.md](./Todolist.md) — 待办与阶段任务
 - [tests/README.md](./tests/README.md) — 单元测试说明与覆盖清单
 
-## 当前进度（Phase 3 已完成）
+## 当前进度（Phase 4 已完成）
 
 - **数据**：PDF 放在 `data/`，chunk 缓存在 `artifacts/chunks/chunks.json`，vectors 缓存在 `artifacts/vectors/vectors.json`
 - **离线构建**：`pip install -r requirements.txt`，然后 `python main.py`（cache-first，自动处理 chunk + vectors；FAISS 可用时会生成 `artifacts/index/faiss.index`）
 - **在线查询**：`python main.py --query "your question" --top-k 3`
-- **测试**：`python -m pytest tests/ -v`（当前 49 passed；加 `-s` 可看中英双语输出）
+- **应用入口（CLI UI）**：`python app.py --query "your question"`（不传 `--query` 进入交互模式）
+- **对话框 Web UI**：`streamlit run web_app.py`
+- **测试**：`python -m pytest tests/ -v`（当前 56 passed；加 `-s` 可看中英双语输出）
 
 ## LLM 配置（支持多 Provider）
 

@@ -41,7 +41,7 @@
   - 索引：若环境安装 `faiss-cpu`，会构建/加载 `artifacts/index/faiss.index`；否则提示并跳过
 - [x] **2.4 单元测试**：完成 embedding/vector/faiss 相关测试并通过
   - 文件：`tests/test_embedding.py`
-  - 结果：`python -m pytest tests/ -v` 通过（当前 37 passed）
+  - 结果：`python -m pytest tests/ -v` 通过（当前 59 passed）
 
 ---
 
@@ -68,21 +68,54 @@
   - 运行：`python main.py --query "your question" --top-k 3 --no-llm-fallback-local`
 - [x] **3.6 单元测试**：为 retriever / prompt / generator / formatter 编写测试并通过
   - 文件：`tests/test_retriever.py`、`tests/test_prompt.py`、`tests/test_generator.py`
-  - 结果：`python -m pytest tests/ -v` 通过（当前 49 passed）
+  - 结果：`python -m pytest tests/ -v` 通过（当前 59 passed）
 
 ---
 
 ## Phase 4：Day 4 — UI + 加分项
 
-- [ ] **4.1**：实现简单 UI（Web 或 CLI）
-- [ ] **4.2**：展示 Source Attribution（来源标注）
+- [x] **4.1**：实现简单 UI（CLI）
+  - 文件：`app.py`
+  - 入口：支持单次查询与交互模式（无 `--query` 时进入 REPL）
+- [x] **4.2**：展示 Source Attribution（来源标注）
   - 格式：Answer + Sources（如 Lecture X, Page Y）
-- [ ] **4.3**：Grounded Generation 约束
+- [x] **4.3**：Grounded Generation 约束
   - 仅基于 context 回答
   - 超出 context → 输出 "I don't know"
-- [ ] **4.4**：主入口与流程串联
+- [x] **4.4**：主入口与流程串联
   - 文件：`app.py`
-- [ ] **4.5 单元测试**：为 app / UI 流程编写测试并通过
+- [x] **4.5 单元测试**：为 app / UI 流程编写测试并通过
+  - 文件：`tests/test_app.py`
+  - 结果：`python -m pytest tests/ -v` 通过（当前 59 passed）
+
+### Phase 4 后续计划（对话框式 UI）
+
+- [x] **4.6 对话框 UI 框架**：新增 Web 聊天界面（Streamlit）
+  - 文件：`web_app.py`
+  - 目标：支持多轮对话输入框、发送按钮、对话气泡展示
+- [x] **4.7 会话状态管理**：维护聊天历史与上下文
+  - 能力：保存本轮 query/answer/sources，支持清空会话
+- [x] **4.8 来源展示增强**：在每条回答下展示来源卡片
+  - 内容：`source`、`page`、相关片段摘要
+- [x] **4.9 配置面板**：在 UI 中可调 `top_k`、provider、model、temperature
+- [x] **4.10 Web UI 单元测试/集成测试**：新增最小可用测试并通过
+  - 文件：`tests/test_web_app.py`
+  - 验收：`python -m pytest tests/ -v` 通过（当前 56 passed）
+- [x] **4.11 文档同步**：更新 `README.md`、`Memory.md`、`Tutorial/Tutorial_app.md`、`tests/README.md`
+
+### Phase 4 UI 体验优化（待做）
+
+- [x] **4.12 Provider 联动配置**：选择不同 `LLM Provider` 后联动可选模型与默认 `base_url`
+  - 目标：避免 provider/model/base_url 不匹配导致调用失败
+- [x] **4.13 选项卡式配置面板**：将 Provider/Model/Endpoint 改为选项卡或下拉联动，不要求手填关键参数
+  - 目标：常用配置可点选，减少输入错误
+- [x] **4.14 预置配置文件**：新增 `llm_presets.json` 保存 provider->models->base_url 映射
+  - 示例：`openai`、`openai_compatible(dashscope)`、`local`
+- [x] **4.15 预置配置加载逻辑**：`web_app.py` 读取预置并驱动 UI 选项联动
+  - 目标：支持未来扩展更多 provider，无需改 UI 代码结构
+- [x] **4.16 UI 优化测试与文档同步**：补充测试并更新文档
+  - 文件：`tests/test_web_app.py`
+  - 验收：`python -m pytest tests/ -v` 通过（当前 59 passed）
 
 ---
 
@@ -114,5 +147,6 @@ rag-demo/
 ├── retriever.py
 ├── prompt.py
 ├── generator.py
-└── app.py
+├── app.py
+└── web_app.py
 ```

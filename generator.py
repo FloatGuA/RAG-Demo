@@ -82,7 +82,12 @@ def _call_openai_chat(
     if OpenAI is None:
         raise RuntimeError("未安装 openai 依赖，请先执行: python -m pip install openai")
 
-    client_kwargs: dict = {"api_key": api_key or "DUMMY_KEY_FOR_LOCAL", "timeout": timeout}
+    client_kwargs: dict = {
+        "api_key": api_key or "DUMMY_KEY_FOR_LOCAL",
+        "timeout": timeout,
+        # 使用我们自己的重试策略，避免 SDK 内部重试拉长总耗时。
+        "max_retries": 0,
+    }
     if base_url:
         client_kwargs["base_url"] = base_url
 
@@ -108,7 +113,7 @@ def generate_answer(
     base_url: str | None = None,
     api_key: str | None = None,
     api_key_env: str = "OPENAI_API_KEY",
-    timeout: float = 30.0,
+    timeout: float = 120.0,
     max_retries: int = 1,
     fallback_to_local: bool = True,
 ) -> str:
@@ -120,13 +125,59 @@ def generate_answer(
     - openai: OpenAI 官方 API
     - openai_compatible: 兼容 OpenAI 协议的 API（可用于本地服务）
     """
+    answer, _ = generate_answer_with_meta(
+        prompt,
+        contexts,
+        provider=provider,
+        use_openai=use_openai,
+        model=model,
+        temperature=temperature,
+        base_url=base_url,
+        api_key=api_key,
+        api_key_env=api_key_env,
+        timeout=timeout,
+        max_retries=max_retries,
+        fallback_to_local=fallback_to_local,
+    )
+    return answer
+
+
+def generate_answer_with_meta(
+    prompt: str,
+    contexts: list[dict] | None = None,
+    *,
+    provider: str | None = None,
+    use_openai: bool = False,
+    model: str = "gpt-4o-mini",
+    temperature: float = 0.2,
+    base_url: str | None = None,
+    api_key: str | None = None,
+    api_key_env: str = "OPENAI_API_KEY",
+    timeout: float = 120.0,
+    max_retries: int = 1,
+    fallback_to_local: bool = True,
+) -> tuple[str, dict]:
+    meta: dict = {
+        "requested_provider": None,
+        "used_provider": None,
+        "used_remote_llm": False,
+        "fallback_triggered": False,
+        "attempts": 0,
+        "error": None,
+    }
+
     if not contexts:
-        return "I don't know"
+        meta["requested_provider"] = _resolve_provider(provider, use_openai)
+        meta["used_provider"] = "local_fallback"
+        meta["fallback_triggered"] = True
+        return "I don't know", meta
 
     chosen_provider = _resolve_provider(provider, use_openai)
+    meta["requested_provider"] = chosen_provider
     if chosen_provider == "local":
         _ = prompt
-        return _local_fallback_answer(contexts)
+        meta["used_provider"] = "local"
+        return _local_fallback_answer(contexts), meta
 
     if max_retries < 0:
         raise ValueError("max_retries 不能小于 0")
@@ -137,11 +188,24 @@ def generate_answer(
     resolved_key = api_key or os.getenv(api_key_env) or os.getenv("OPENAI_API_KEY")
     if chosen_provider == "openai" and not resolved_key:
         if fallback_to_local:
-            return _local_fallback_answer(contexts)
+            meta["used_provider"] = "local_fallback"
+            meta["fallback_triggered"] = True
+            meta["error"] = f"missing_api_key:{api_key_env}"
+            return _local_fallback_answer(contexts), meta
         raise RuntimeError(f"未检测到 API Key，请设置环境变量: {api_key_env}")
 
     last_error: Exception | None = None
+    deadline = time.monotonic() + timeout
     for attempt in range(max_retries + 1):
+        meta["attempts"] = attempt + 1
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            meta["error"] = f"timeout_exceeded(total>{timeout}s)"
+            if fallback_to_local:
+                meta["used_provider"] = "local_fallback"
+                meta["fallback_triggered"] = True
+                return _local_fallback_answer(contexts), meta
+            raise RuntimeError(f"LLM 调用超时（总预算 {timeout}s）")
         try:
             resp = _call_openai_chat(
                 prompt=prompt,
@@ -149,21 +213,30 @@ def generate_answer(
                 temperature=temperature,
                 api_key=resolved_key,
                 base_url=base_url,
-                timeout=timeout,
+                timeout=remaining,
             )
             content = resp.choices[0].message.content or ""
             normalized = content.strip()
-            return normalized or "I don't know"
+            meta["used_provider"] = chosen_provider
+            meta["used_remote_llm"] = True
+            return (normalized or "I don't know"), meta
         except Exception as exc:  # pragma: no cover - 依赖外部网络/服务
             last_error = exc
+            meta["error"] = str(exc)
             if attempt < max_retries:
                 time.sleep(min(0.5 * (2**attempt), 2.0))
                 continue
             if fallback_to_local:
-                return _local_fallback_answer(contexts)
+                meta["used_provider"] = "local_fallback"
+                meta["fallback_triggered"] = True
+                return _local_fallback_answer(contexts), meta
             raise RuntimeError(f"LLM 调用失败（provider={chosen_provider}）: {exc}") from exc
 
     # 理论上不会到达，作为防御性返回
     if last_error is not None and not fallback_to_local:
         raise RuntimeError(f"LLM 调用失败: {last_error}") from last_error
-    return _local_fallback_answer(contexts)
+    meta["used_provider"] = "local_fallback"
+    meta["fallback_triggered"] = True
+    if last_error is not None:
+        meta["error"] = str(last_error)
+    return _local_fallback_answer(contexts), meta

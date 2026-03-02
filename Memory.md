@@ -12,9 +12,9 @@
 
 | 字段 | 内容 |
 |------|------|
-| **当前阶段** | Phase 4：Day 4 — UI + 加分项 |
-| **上次完成** | Phase 3 全部完成（3.1/3.2/3.3/3.4/3.5/3.6） |
-| **下一步任务** | 4.1 实现简单 UI（先 CLI 或 Web） |
+| **当前阶段** | 全阶段完成（Phase 1 ~ Phase 4） |
+| **上次完成** | Phase 4 全部完成（4.1/4.2/4.3/4.4/4.5） |
+| **下一步任务** | 可选：Web UI 细节优化（来源卡片折叠、流式输出、多会话持久化） |
 | **最后更新** | 2026-03-01 |
 
 ### 阶段完成情况
@@ -22,7 +22,7 @@
 - Phase 1（Loader + Chunking）：已完成
 - Phase 2（Embedding + FAISS）：已完成
 - Phase 3（Retrieval + LLM）：已完成
-- Phase 4（UI + 加分项）：未开始
+- Phase 4（UI + 加分项）：已完成
 
 ---
 
@@ -61,7 +61,7 @@
 | 2.2 FAISS | `embedding.py` / `main.py` | 已实现 `build_faiss_index()` / `search_faiss()` / `save_faiss_index()` / `load_faiss_index()`；环境无 faiss 时可优雅降级 | `artifacts/index/faiss.index` |
 | 2.2.1 向量持久化 | `embedding.py` | 已实现 `save_vectors()` / `load_vectors()`，JSON 可读存储、缺失文件报错 | VectorStore ↔ JSON |
 | 2.3 Offline pipeline | `main.py` / `embedding.py` | 已接入：chunk 后自动 build/load vectors（`artifacts/vectors/vectors.json`）并尝试 FAISS 索引（`artifacts/index/faiss.index`）；cache-first | - |
-| 2.4 单元测试 | `tests/test_embedding.py` | 覆盖向量化、向量持久化、FAISS 可用/不可用路径；当前全量测试通过 | 49 passed |
+| 2.4 单元测试 | `tests/test_embedding.py` | 覆盖向量化、向量持久化、FAISS 可用/不可用路径；当前全量测试通过 | 59 passed |
 
 ### Phase 3：Retrieval + LLM
 
@@ -72,16 +72,20 @@
 | 3.3 LLM Generator | `generator.py` | `generate_answer()` 支持 `local/openai/openai_compatible`，支持 `.env`、重试、超时、失败回退本地 | prompt (+contexts) → answer |
 | 3.4 Response Formatter | `formatter.py` | `format_response()`：输出 `{answer, sources}`，并按 source/page 去重 | answer + chunks → `{ answer, sources }` |
 | 3.5 Online pipeline | `main.py` | 支持 `--llm-provider`、`--llm-base-url`、`--llm-model`、`--no-llm-fallback-local`；串联在线流程 | query → answer + sources |
-| 3.6 单元测试 | `tests/test_retriever.py` / `tests/test_prompt.py` / `tests/test_generator.py` | 覆盖检索、prompt 组装、provider 校验、无 key 回退与来源格式化；全量通过 | 49 passed |
+| 3.6 单元测试 | `tests/test_retriever.py` / `tests/test_prompt.py` / `tests/test_generator.py` | 覆盖检索、prompt 组装、provider 校验、无 key 回退与来源格式化；全量通过 | 59 passed |
 
 ### Phase 4：UI + 加分项
 
 | 任务 | 实现文件 | 实现方式 | 接口说明 |
 |------|----------|----------|----------|
-| 4.1 UI | `app.py` | （待填：Streamlit/Gradio/CLI） | - |
-| 4.2 Source 展示 | - | （待填） | - |
-| 4.3 Grounded 约束 | `prompt.py` | （待填：prompt 中的约束语句） | - |
-| 4.4 主入口 | `app.py` | （待填：流程串联方式） | - |
+| 4.1 UI | `app.py` | 已实现 CLI UI（单次 query + 交互 REPL） | question → answer |
+| 4.2 Source 展示 | `app.py` / `formatter.py` | CLI 输出 `Answer + Sources`，来源按 source/page 展示 | answer + contexts → sources |
+| 4.3 Grounded 约束 | `prompt.py` / `generator.py` | prompt 强制 only use context；无上下文时返回 `I don't know` | grounded answer |
+| 4.4 主入口 | `app.py` | 已实现单次查询 + 交互模式，串联 offline 缓存与 online 问答 | CLI app entry |
+| 4.5 单元测试 | `tests/test_app.py` | 覆盖 app 单次问答结构、参数校验、来源渲染；全量通过 | 59 passed |
+| 4.6 对话框 UI | `web_app.py` | Streamlit 聊天界面：消息气泡、输入框、侧边配置、会话历史与清空 | Web Chat UI |
+| 4.10 Web UI 测试 | `tests/test_web_app.py` | 覆盖来源文本、助手消息拼接、env 解析、preset 回退与 provider 映射 | 全量 59 passed |
+| 4.12-4.16 UI 体验优化 | `web_app.py` / `llm_presets.json` | 已实现 provider->model->base_url 联动、选项卡配置、预置加载；默认使用 DashScope + `qwen3.5-plus`（从 `.env` 读取 key） | Web UI UX 优化 |
 
 ---
 
@@ -112,7 +116,9 @@
 
 ## 已知问题与注意事项
 
-- 
+- 当前 `web_app.py` 的 Provider/Model/Base URL 仍以手动输入为主，易出现组合错误。
+- 已切换为“选项卡 + 预置配置文件”模式：先选 Provider，再选模型，自动带出默认 endpoint。
+- 预置文件：`llm_presets.json`，集中维护可用 provider/model/base_url。
 
 ---
 

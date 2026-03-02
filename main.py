@@ -37,6 +37,23 @@ VECTORS_PATH = Path("artifacts/vectors/vectors.json")
 FAISS_INDEX_PATH = Path("artifacts/index/faiss.index")
 
 
+def _load_env_defaults(path: str = ".env") -> dict[str, str]:
+    values: dict[str, str] = {}
+    p = Path(path)
+    if not p.exists():
+        return values
+    for raw_line in p.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key:
+            values[key] = value
+    return values
+
+
 def build_or_load_chunks(
     *,
     force_rebuild: bool = False,
@@ -109,6 +126,7 @@ def build_or_load_faiss_index(
 
 
 def parse_args() -> argparse.Namespace:
+    env_defaults = _load_env_defaults(".env")
     parser = argparse.ArgumentParser(description="RAG-Demo 主流程入口（offline + online）")
     parser.add_argument(
         "--force-rebuild",
@@ -159,20 +177,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--llm-provider",
         type=str,
-        default=os.getenv("LLM_PROVIDER", "local"),
+        default=os.getenv("LLM_PROVIDER") or env_defaults.get("LLM_PROVIDER", "local"),
         choices=["local", "openai", "openai_compatible"],
         help="LLM provider：local/openai/openai_compatible",
     )
     parser.add_argument(
         "--llm-model",
         type=str,
-        default=os.getenv("LLM_MODEL", "gpt-4o-mini"),
+        default=os.getenv("LLM_MODEL") or env_defaults.get("LLM_MODEL", "gpt-4o-mini"),
         help="模型名（对 openai/openai_compatible 生效）",
     )
     parser.add_argument(
         "--llm-base-url",
         type=str,
-        default=os.getenv("LLM_BASE_URL", ""),
+        default=os.getenv("LLM_BASE_URL") or env_defaults.get("LLM_BASE_URL", ""),
         help="OpenAI 兼容接口的 base_url（如本地服务）",
     )
     parser.add_argument(
@@ -190,8 +208,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--llm-timeout",
         type=float,
-        default=30.0,
-        help="LLM 请求超时时间秒（默认 30）",
+        default=120.0,
+        help="LLM 请求超时时间秒（默认 120）",
     )
     parser.add_argument(
         "--llm-max-retries",

@@ -12,7 +12,7 @@
 
 ## 3. 核心实现（How）
 
-当前测试文件（Phase 1 + Phase 2 + Phase 3）：
+当前测试文件（Phase 1 + Phase 2 + Phase 3 + Phase 4）：
 
 - `tests/test_loader.py`：测试 `loader.py`
 - `tests/test_chunking.py`：测试 `chunking.py`
@@ -21,6 +21,8 @@
 - `tests/test_retriever.py`：测试 `retriever.py`（Top-k 检索）
 - `tests/test_prompt.py`：测试 `prompt.py`（prompt 组装）
 - `tests/test_generator.py`：测试 `generator.py` + `formatter.py`
+- `tests/test_app.py`：测试 `app.py`（CLI 应用流程与渲染）
+- `tests/test_web_app.py`：测试 `web_app.py`（Web UI 辅助函数）
 - `tests/conftest.py`：公共 fixtures（临时 PDF、示例 Document 等）
 
 运行命令：
