@@ -4,7 +4,8 @@
 
 - `test_loader.py`：`loader.py` 的测试
 - `test_chunking.py`：`chunking.py` 的测试
-- `test_storage_chunks.py`：`ts20260301_storage_chunks.py` 的测试
+- `test_storage_chunks.py`：`chunking.py` 中 `save_chunks/load_chunks` 的测试
+- `test_embedding.py`：`embedding.py`（向量化 + 向量持久化 + FAISS 集成）的测试
 - `conftest.py`：测试共用的 fixtures
 
 ---
@@ -123,3 +124,16 @@ pytest tests/ -v
 - 异常处理：
   - 文件不存在 -> `FileNotFoundError`
   - JSON 根结构不是 list -> `ValueError`
+
+### `test_embedding.py`
+
+- 向量化基础：
+  - 维度正确（固定 dim）
+  - 同输入可复现（deterministic）
+  - VectorStore 结构正确（vectors + metadata）
+- 向量持久化：
+  - `save_vectors` + `load_vectors` 往返一致
+  - 缺失文件抛 `FileNotFoundError`
+- FAISS 集成：
+  - 无 FAISS 环境时可正确报错/降级路径可测
+  - 有 FAISS 环境时索引持久化与检索行为可测（条件跳过）

@@ -4,10 +4,10 @@
 """
 
 from dataclasses import asdict, dataclass
+import json
 from pathlib import Path
 
 from loader import Document
-from ts20260301_storage_chunks import load_chunks, save_chunks
 
 
 @dataclass
@@ -106,6 +106,32 @@ def dicts_to_chunks(raw_chunks: list[dict]) -> list[Chunk]:
         )
         for item in raw_chunks
     ]
+
+
+def save_chunks(chunks: list[dict], path: str) -> None:
+    """
+    将 chunks 保存到 JSON 文件（可读性优先）。
+    """
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open("w", encoding="utf-8") as f:
+        json.dump(chunks, f, ensure_ascii=False, indent=2)
+
+
+def load_chunks(path: str) -> list[dict]:
+    """
+    从 JSON 文件加载 chunks。
+    """
+    target = Path(path)
+    if not target.exists():
+        raise FileNotFoundError(f"chunks 文件不存在: {target}")
+
+    with target.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    if not isinstance(data, list):
+        raise ValueError(f"chunks 文件格式错误，期望 list，实际: {type(data).__name__}")
+    return data
 
 
 if __name__ == "__main__":

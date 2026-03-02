@@ -1,5 +1,5 @@
 """
-ts20260301_storage_chunks.py 单元测试
+chunking.py 中 save/load_chunks 单元测试
 
 覆盖目标：
 1) save_chunks/load_chunks 的数据一致性。
@@ -9,7 +9,7 @@ ts20260301_storage_chunks.py 单元测试
 
 import pytest
 
-from ts20260301_storage_chunks import load_chunks, save_chunks
+from chunking import load_chunks, save_chunks
 
 
 class TestStorageChunks:

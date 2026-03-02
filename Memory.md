@@ -12,15 +12,15 @@
 
 | 字段 | 内容 |
 |------|------|
-| **当前阶段** | Phase 2：Day 2 — Embedding + FAISS |
-| **上次完成** | Phase 1 全部完成（含 chunk 持久化与测试），并将缓存目录整理为 `artifacts/chunks/` |
-| **下一步任务** | 2.1 模块3 Embedding：实现向量化，Chunks → 向量 |
+| **当前阶段** | Phase 3：Day 3 — Retrieval + LLM |
+| **上次完成** | Phase 2 全部完成（2.1/2.2/2.2.1/2.3/2.4） |
+| **下一步任务** | 3.1 模块4 Retriever：基于向量检索 Top-k chunks |
 | **最后更新** | 2026-03-01 |
 
 ### 阶段完成情况
 
 - Phase 1（Loader + Chunking）：已完成
-- Phase 2（Embedding + FAISS）：未开始
+- Phase 2（Embedding + FAISS）：已完成
 - Phase 3（Retrieval + LLM）：未开始
 - Phase 4（UI + 加分项）：未开始
 
@@ -38,16 +38,14 @@
 |------|----------|----------|----------|
 | 1.1 项目结构 | `data/`, `requirements.txt` | data 放 PDF，requirements 含 pypdf、pytest | - |
 | 1.2 Document Loader | `loader.py` | pypdf，`load_pdf(path)` / `load_pdfs_from_dir(dir)`，按页拆为 Document | 输入路径 → `List[Document]` |
-| 1.3 Chunking | `chunking.py` | `chunk_document()` / `chunk_documents()`，chunk_size=500，overlap=50，优先在句末切断；另有 `chunks_to_dicts` / `dicts_to_chunks` 供持久化用 | 输入 Document → `List[Chunk]` |
-| 1.4 Chunk 持久化 | `ts20260301_storage_chunks.py` | 实现 `save_chunks(List[dict], path)` / `load_chunks(path)`，JSON 可读存储，文件不存在报错 | `List[dict]` ↔ JSON |
+| 1.3 Chunking | `chunking.py` | `chunk_document()` / `chunk_documents()`，chunk_size=500，overlap=50，优先在句末切断 | 输入 Document → `List[Chunk]` |
+| 1.4 Chunk 持久化 | `chunking.py` | 已内联 `save_chunks(List[dict], path)` / `load_chunks(path)`，JSON 可读存储，文件不存在报错 | `List[dict]` ↔ JSON |
 | 1.5 联调 | `chunking.py` | 主流程支持缓存：`artifacts/chunks/chunks.json` 存在则 load，不存在则 chunk 后保存；兼容旧路径 `storage/chunks.json` 自动迁移 | - |
-| 1.6 单元测试与说明 | `tests/` | test_loader、test_chunking、test_storage_chunks、conftest；约 30 个用例；`pytest tests/ -v`，加 `-s` 可看中英双语 [TEST START]/[INPUT]/[ACTION]/[EXPECTED]/[PASS]；详见 tests/README.md | - |
+| 1.6 Tutorial 文档体系 | `Tutorial/` | 为 loader/chunking/main/embedding/retriever/prompt/generator/testing 建立结构化教程；每篇含 What/Why/How/Data Flow/上下游关系 | `Tutorial/*.md` |
 
-**Document 结构**（loader 产出）：`content: str`, `source: str`, `page: int`
+**Chunk 结构**：`{ text, source, page }`
 
-**Chunk 结构**（chunking 产出）：`{ text, source, page }`
-
-**Phase 1 单元测试**：`tests/test_loader.py`、`tests/test_chunking.py`、`tests/test_storage_chunks.py`、`tests/conftest.py`；约 30 个用例；运行 `pytest tests/ -v`，加 `-s` 可看中英双语说明；覆盖清单见 `tests/README.md`
+**Phase 1 单元测试**：`tests/test_loader.py`、`tests/test_chunking.py`、`tests/test_storage_chunks.py`，运行 `pytest tests/ -v`（当前 30 passed）
 
 **持久化规范（后续必须沿用）**：
 - 中间结果（chunks/vector 等）都要提供 `save_xxx` / `load_xxx`
@@ -59,9 +57,11 @@
 
 | 任务 | 实现文件 | 实现方式 | 接口说明 |
 |------|----------|----------|----------|
-| 2.1 Embedding | `embedding.py` | （待填：模型、维度） | Chunks → 向量 |
-| 2.2 FAISS | `embedding.py` | （待填：索引类型、持久化路径） | - |
-| 2.3 Offline pipeline | （待填） | （待填：入口、调用顺序） | - |
+| 2.1 Embedding | `embedding.py` | 轻量哈希 BoW（可复现）+ L2 归一化，`embed_text()` / `build_vector_store()` | Chunks → VectorStore |
+| 2.2 FAISS | `embedding.py` / `main.py` | 已实现 `build_faiss_index()` / `search_faiss()` / `save_faiss_index()` / `load_faiss_index()`；环境无 faiss 时可优雅降级 | `artifacts/index/faiss.index` |
+| 2.2.1 向量持久化 | `embedding.py` | 已实现 `save_vectors()` / `load_vectors()`，JSON 可读存储、缺失文件报错 | VectorStore ↔ JSON |
+| 2.3 Offline pipeline | `main.py` / `embedding.py` | 已接入：chunk 后自动 build/load vectors（`artifacts/vectors/vectors.json`）并尝试 FAISS 索引（`artifacts/index/faiss.index`）；cache-first | - |
+| 2.4 单元测试 | `tests/test_embedding.py` | 覆盖向量化、向量持久化、FAISS 可用/不可用路径；当前全量测试通过 | 37 passed |
 
 ### Phase 3：Retrieval + LLM
 
@@ -95,7 +95,8 @@
 ## 技术栈与架构
 
 - **Phase 1**：pypdf（PDF 解析）、Python dataclass（Document / Chunk）、pytest（单元测试）
-- **当前仓库结构（Phase 1 完成后）**：`data/`、`artifacts/chunks/`、`loader.py`、`chunking.py`、`ts20260301_storage_chunks.py`、`tests/`（含 conftest、test_loader、test_chunking、test_storage_chunks）、`requirements.txt`（pypdf、pytest）
+- **主流程入口**：`main.py`（缓存优先，调用 loader + chunking + 持久化）
+- **教程体系**：`Tutorial/README.md` + `Tutorial/Tutorial_*.md`
 - 其余见 [Outline.md](./Outline.md)
 
 ---
