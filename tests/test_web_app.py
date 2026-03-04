@@ -4,6 +4,7 @@ web_app.py 单元测试（不依赖 streamlit 运行时）
 
 from pathlib import Path
 
+from config.env import load_env_defaults
 from web_app import (
     build_assistant_message,
     format_sources_lines,
@@ -12,7 +13,6 @@ from web_app import (
     get_default_timeout,
     get_models_for_provider,
     get_provider_options,
-    load_env_file,
     load_llm_presets,
     now_timestamp,
 )
@@ -57,8 +57,8 @@ class TestWebAppHelpers:
         env_path = tmp_path / ".env"
         env_path.write_text("LLM_PROVIDER=openai_compatible\nLLM_MODEL=qwen3.5-plus\n", encoding="utf-8")
         print("[INPUT] temp .env with provider/model | 包含 provider/model 的临时 .env")
-        print("[ACTION] call load_env_file | 调用 load_env_file")
-        data = load_env_file(str(env_path))
+        print("[ACTION] call load_env_defaults | 调用 load_env_defaults")
+        data = load_env_defaults(str(env_path))
         print("[EXPECTED] dict contains parsed values | 字典包含解析后的值")
         assert data["LLM_PROVIDER"] == "openai_compatible"
         assert data["LLM_MODEL"] == "qwen3.5-plus"

@@ -3,3 +3,6 @@ pytest>=8.0.0
 numpy
 openai
 streamlit
+python-docx
+python-pptx
+typer

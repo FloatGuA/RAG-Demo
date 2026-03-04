@@ -1,0 +1,222 @@
+[
+  {
+    "id": "q01_dss_components",
+    "query": "What are the four components of a Decision Support System (DSS)?",
+    "expected_keywords": ["Data management subsystem", "Model management subsystem", "User interface subsystem", "Knowledge-based management subsystem"],
+    "expected_sources": [{"source": "COMP5152_ADA_L1_2026_bw(2).pdf", "page": 20}],
+    "top_k": 3
+  },
+  {
+    "id": "q02_data_management_subsystem",
+    "query": "List the key elements in the DSS data management subsystem.",
+    "expected_keywords": ["DSS database", "Database management system", "Data directory", "Query facility"],
+    "expected_sources": [{"source": "COMP5152_ADA_L1_2026_bw(2).pdf", "page": 21}],
+    "top_k": 3
+  },
+  {
+    "id": "q03_model_management_subsystem",
+    "query": "What elements are included in the DSS model management subsystem?",
+    "expected_keywords": ["Model base", "MBMS", "Modeling language", "Model directory", "Model execution"],
+    "expected_sources": [{"source": "COMP5152_ADA_L1_2026_bw(2).pdf", "page": 22}],
+    "top_k": 3
+  },
+  {
+    "id": "q04_dw_definition",
+    "query": "How is a data warehouse (DW) defined in BI context?",
+    "expected_keywords": ["subject-oriented", "integrated", "time-variant", "nonvolatile", "decision-making"],
+    "expected_sources": [{"source": "COMP5152_ADA_L1_2026_bw(2).pdf", "page": 26}],
+    "top_k": 3
+  },
+  {
+    "id": "q05_bi_data_sources",
+    "query": "What are the three main data source types for BI mentioned in the slides?",
+    "expected_keywords": ["Data Marts", "Operational Data Stores", "Enterprise Data Warehouses"],
+    "expected_sources": [{"source": "COMP5152_ADA_L1_2026_bw(2).pdf", "page": 26}],
+    "top_k": 3
+  },
+  {
+    "id": "q06_oltp_vs_olap",
+    "query": "What is the main difference between OLTP systems and OLAP/DW usage?",
+    "expected_keywords": ["routine ongoing business", "transaction processing", "ad hoc reports", "analysis", "OLAP"],
+    "expected_sources": [{"source": "COMP5152_ADA_L1_2026_bw(2).pdf", "page": 28}],
+    "top_k": 3
+  },
+  {
+    "id": "q07_lifecycle_steps",
+    "query": "What are the six stages in the Data Analytics Life Cycle?",
+    "expected_keywords": ["Discovery", "Data Preparation", "Model Planning", "Build & Execute Model", "Communicate results", "Operationalizing"],
+    "expected_sources": [{"source": "COMP5152_ADA_L1_2026_bw(2).pdf", "page": 33}],
+    "top_k": 3
+  },
+  {
+    "id": "q08_pipeline_steps",
+    "query": "What steps are listed in the Data Analytics Pipeline?",
+    "expected_keywords": ["Collect", "Transform", "Store", "Analyze", "Presentation"],
+    "expected_sources": [{"source": "COMP5152_ADA_L1_2026_bw(2).pdf", "page": 34}],
+    "top_k": 3
+  },
+  {
+    "id": "q09_four_analytics_types",
+    "query": "What are the four types of data analytics and what question does each type answer?",
+    "expected_keywords": ["Descriptive", "Diagnostic", "Predictive", "Prescriptive", "What has happened", "Where & Why", "What might happen", "What should we do"],
+    "expected_sources": [{"source": "COMP5152_ADA_L1_2026_bw(2).pdf", "page": 36}],
+    "top_k": 3
+  },
+  {
+    "id": "q10_descriptive_tools",
+    "query": "Give examples of tools/techniques used in descriptive analytics.",
+    "expected_keywords": ["mean", "mode", "median", "standard deviation", "variance", "histogram"],
+    "expected_sources": [{"source": "COMP5152_ADA_L1_2026_bw(2).pdf", "page": 42}],
+    "top_k": 3
+  },
+  {
+    "id": "q11_central_tendency",
+    "query": "What three measures of central tendency are highlighted?",
+    "expected_keywords": ["mean", "mode", "median"],
+    "expected_sources": [{"source": "COMP5152_ADA_L2_2026_bw(1).pdf", "page": 59}],
+    "top_k": 3
+  },
+  {
+    "id": "q12_mode_definition",
+    "query": "How is mode defined in the lecture?",
+    "expected_keywords": ["value that occurs most frequently", "modal class"],
+    "expected_sources": [{"source": "COMP5152_ADA_L2_2026_bw(1).pdf", "page": 65}],
+    "top_k": 3
+  },
+  {
+    "id": "q13_normal_distribution_properties",
+    "query": "What are key properties of a normal distribution described in the slides?",
+    "expected_keywords": ["bell shaped", "symmetry", "unimodal", "mean", "mode", "median"],
+    "expected_sources": [{"source": "COMP5152_ADA_L2_2026_bw(1).pdf", "page": 83}],
+    "top_k": 3
+  },
+  {
+    "id": "q14_center_in_normal_distribution",
+    "query": "In a normal distribution, how are mean, median, and mode related?",
+    "expected_keywords": ["mean", "median", "mode", "coincide"],
+    "expected_sources": [{"source": "COMP5152_ADA_L2_2026_bw(1).pdf", "page": 85}],
+    "top_k": 3
+  },
+  {
+    "id": "q15_ci_quick_estimate",
+    "query": "What is the quick formula for a 95% confidence interval in the lecture notes?",
+    "expected_keywords": ["statistic ± 2 × standard error", "mean ± 2 × SEM"],
+    "expected_sources": [{"source": "COMP5152_ADA_L2_2026_bw(1).pdf", "page": 113}],
+    "top_k": 3
+  },
+  {
+    "id": "q16_ci_interpretation",
+    "query": "According to the slides, what does '95% of 95% confidence intervals will capture the truth' mean?",
+    "expected_keywords": ["parameter is fixed", "statistic is random", "interval is random", "95% of intervals capture the truth"],
+    "expected_sources": [{"source": "COMP5152_ADA_L2_2026_bw(1).pdf", "page": 115}],
+    "top_k": 3
+  },
+  {
+    "id": "q17_p_value_rule",
+    "query": "What does p-value represent and what common threshold is used for rejecting H0?",
+    "expected_keywords": ["probability value", "under the null hypothesis", "p < 0.05", "reject hypothesis"],
+    "expected_sources": [{"source": "COMP5152_ADA_L3_2026_bw(2).pdf", "page": 24}],
+    "top_k": 3
+  },
+  {
+    "id": "q18_type1_type2",
+    "query": "What are Type I and Type II errors in hypothesis testing?",
+    "expected_keywords": ["Type I Error", "rejects a true null hypothesis", "Type II Error", "fails to reject a false null hypothesis", "power"],
+    "expected_sources": [{"source": "COMP5152_ADA_L3_2026_bw(2).pdf", "page": 32}],
+    "top_k": 3
+  },
+  {
+    "id": "q19_ab_testing_purpose",
+    "query": "What is the primary purpose of A/B testing?",
+    "expected_keywords": ["compare two versions", "A and B", "perform better", "click-through rate", "conversion rate"],
+    "expected_sources": [{"source": "COMP5152_ADA_L3_2026_bw(2).pdf", "page": 37}],
+    "top_k": 3
+  },
+  {
+    "id": "q20_arima_parameters",
+    "query": "In ARIMA(p, d, q), what do p, d, and q represent?",
+    "expected_keywords": ["order of the AR model", "number of times to difference the data", "order of the MA model"],
+    "expected_sources": [{"source": "COMP5152_ADA_L4_2026_bw.pdf", "page": 86}],
+    "top_k": 3
+  },
+  {
+    "id": "q21_idk_python_version",
+    "query": "What is the latest stable Python version released this month?",
+    "expected_answer": "I don't know",
+    "expected_keywords": ["I don't know"],
+    "expected_sources": [],
+    "top_k": 3
+  },
+  {
+    "id": "q22_idk_hk_weather",
+    "query": "What will be the temperature in Hong Kong tomorrow at noon?",
+    "expected_answer": "I don't know",
+    "expected_keywords": ["I don't know"],
+    "expected_sources": [],
+    "top_k": 3
+  },
+  {
+    "id": "q23_idk_openai_pricing",
+    "query": "What is the current pricing of GPT-4.1 API per 1M tokens?",
+    "expected_answer": "I don't know",
+    "expected_keywords": ["I don't know"],
+    "expected_sources": [],
+    "top_k": 3
+  },
+  {
+    "id": "q24_idk_capital_france",
+    "query": "What is the capital city of France?",
+    "expected_answer": "I don't know",
+    "expected_keywords": ["I don't know"],
+    "expected_sources": [],
+    "top_k": 3
+  },
+  {
+    "id": "q25_idk_world_cup_2026",
+    "query": "Who will win the FIFA World Cup 2026?",
+    "expected_answer": "I don't know",
+    "expected_keywords": ["I don't know"],
+    "expected_sources": [],
+    "top_k": 3
+  },
+  {
+    "id": "q26_idk_iphone_spec",
+    "query": "How much RAM does the newest iPhone have?",
+    "expected_answer": "I don't know",
+    "expected_keywords": ["I don't know"],
+    "expected_sources": [],
+    "top_k": 3
+  },
+  {
+    "id": "q27_idk_stock_price",
+    "query": "What is NVIDIA stock price right now?",
+    "expected_answer": "I don't know",
+    "expected_keywords": ["I don't know"],
+    "expected_sources": [],
+    "top_k": 3
+  },
+  {
+    "id": "q28_idk_recipe",
+    "query": "How do I cook authentic Italian carbonara step by step?",
+    "expected_answer": "I don't know",
+    "expected_keywords": ["I don't know"],
+    "expected_sources": [],
+    "top_k": 3
+  },
+  {
+    "id": "q29_idk_java_threads",
+    "query": "How does Java virtual thread scheduling work internally?",
+    "expected_answer": "I don't know",
+    "expected_keywords": ["I don't know"],
+    "expected_sources": [],
+    "top_k": 3
+  },
+  {
+    "id": "q30_idk_gpu_release",
+    "query": "What are the exact launch specs of NVIDIA Blackwell B200?",
+    "expected_answer": "I don't know",
+    "expected_keywords": ["I don't know"],
+    "expected_sources": [],
+    "top_k": 3
+  }
+]

@@ -11,7 +11,8 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-from app import answer_with_store, build_runtime
+from config.env import load_env_defaults
+from pipeline import answer_with_store, build_runtime
 
 
 DEFAULT_PRESETS = {
@@ -30,23 +31,6 @@ DEFAULT_PRESETS = {
         },
     },
 }
-
-
-def load_env_file(path: str = ".env") -> dict[str, str]:
-    values: dict[str, str] = {}
-    p = Path(path)
-    if not p.exists():
-        return values
-    for raw_line in p.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        key = key.strip()
-        value = value.strip().strip('"').strip("'")
-        if key:
-            values[key] = value
-    return values
 
 
 def load_llm_presets(path: str = "llm_presets.json") -> dict:
@@ -123,6 +107,9 @@ def format_debug_lines(debug: dict) -> list[str]:
         f"- 模型: {debug.get('llm_model')}",
         f"- Base URL: {debug.get('llm_base_url')}",
         f"- Top-k: {debug.get('top_k_requested')}",
+        f"- 最小相关度阈值: {debug.get('min_relevance_score')}",
+        f"- 最高检索分数: {debug.get('best_retrieval_score')}",
+        f"- 是否触发低相关过滤: {debug.get('relevance_filter_triggered')}",
         f"- 检索到的 chunks 数: {debug.get('retrieved_chunks')}",
         f"- 是否启用 FAISS: {debug.get('faiss_enabled')}",
         f"- 返回来源数: {debug.get('sources_returned')}",
@@ -143,7 +130,7 @@ def run() -> None:
     except Exception as exc:  # pragma: no cover - 运行时依赖
         raise RuntimeError("请先安装 streamlit：python -m pip install streamlit") from exc
 
-    env_values = load_env_file(".env")
+    env_values = load_env_defaults(".env")
     presets = load_llm_presets("llm_presets.json")
 
     st.set_page_config(page_title="RAG Chat UI", page_icon="💬", layout="wide")
@@ -154,6 +141,14 @@ def run() -> None:
         st.subheader("Runtime")
         st.caption("Top-k：返回 K 个最可能相关的检索结果。")
         top_k = st.number_input("Top-k", min_value=1, max_value=20, value=3, step=1)
+        st.caption("最小相关度阈值：低于该分数的检索结果会被丢弃（0 表示关闭）。")
+        min_relevance_score = st.number_input(
+            "Min relevance score",
+            min_value=0.0,
+            max_value=1.0,
+            value=0.0,
+            step=0.05,
+        )
         provider_options = get_provider_options(presets)
         default_provider = env_values.get("LLM_PROVIDER", presets.get("default_provider", provider_options[0]))
         if default_provider not in provider_options:
@@ -253,6 +248,7 @@ def run() -> None:
                 llm_timeout=float(llm_timeout),
                 llm_max_retries=int(llm_max_retries),
                 llm_fallback_local=llm_fallback_local,
+                min_relevance_score=None if float(min_relevance_score) <= 0 else float(min_relevance_score),
             )
             content = build_assistant_message(response.get("answer", ""), response.get("sources", []))
             assistant_ts = now_timestamp()

@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from loader import Document, load_pdf, load_pdfs_from_dir
+from loader import Document, load_document, load_documents_from_dir, load_pdf, load_pdfs_from_dir
 
 
 class TestLoadPdf:
@@ -128,3 +128,44 @@ class TestLoadPdfsFromDir:
         assert d.source.endswith(".pdf"), "source 应包含 .pdf 后缀"
         assert d.page == 1, "第一页 page 应为 1"
         print("[PASS] Integration test passed | 集成测试通过\n")
+
+
+class TestMultiFormatLoader:
+    """多格式文档加载行为"""
+
+    def test_load_document_markdown(self, tmp_path):
+        print("\n[TEST START] Load markdown as document | 加载 Markdown 文档")
+        md = tmp_path / "note.md"
+        md.write_text("# Title\n\nThis is markdown content.", encoding="utf-8")
+        print("[ACTION] call load_document(.md) | 调用 load_document(.md)")
+        docs = load_document(md)
+        print("[EXPECTED] one Document with page=1 | 返回 1 条 Document，page=1")
+        assert len(docs) == 1
+        assert docs[0].source == "note.md"
+        assert docs[0].page == 1
+        assert "markdown content" in docs[0].content
+        print("[PASS] markdown loader ok | Markdown 加载正确\n")
+
+    def test_load_documents_from_dir_mixed_pdf_and_md(self, tmp_path, temp_pdf):
+        print("\n[TEST START] Load mixed pdf+md from dir | 从目录加载 PDF+MD 混合文档")
+        target_pdf = tmp_path / "sample.pdf"
+        target_pdf.write_bytes(Path(temp_pdf).read_bytes())
+        (tmp_path / "readme.md").write_text("hello md", encoding="utf-8")
+        print("[ACTION] call load_documents_from_dir(tmp_path) | 调用 load_documents_from_dir(tmp_path)")
+        docs = load_documents_from_dir(tmp_path)
+        print("[EXPECTED] docs include .pdf and .md sources | 结果包含 .pdf 与 .md 来源")
+        sources = {d.source for d in docs}
+        assert "sample.pdf" in sources
+        assert "readme.md" in sources
+        assert all(isinstance(d, Document) for d in docs)
+        print("[PASS] mixed format dir loader ok | 混合格式目录加载正确\n")
+
+    def test_load_document_unsupported_suffix_raises(self, tmp_path):
+        print("\n[TEST START] Unsupported suffix raises | 不支持扩展名抛错")
+        p = tmp_path / "raw.txt"
+        p.write_text("x", encoding="utf-8")
+        print("[ACTION] call load_document(.txt) | 调用 load_document(.txt)")
+        print("[EXPECTED] ValueError with unsupported type | 抛出 ValueError")
+        with pytest.raises(ValueError, match="不支持的文件类型"):
+            load_document(p)
+        print("[PASS] unsupported suffix validation ok | 不支持扩展名校验正确\n")

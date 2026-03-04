@@ -11,6 +11,7 @@
 - `test_generator.py`：`generator.py` + `formatter.py`（回答生成与来源格式化）的测试
 - `test_app.py`：`app.py`（CLI 应用入口与输出渲染）的测试
 - `test_web_app.py`：`web_app.py`（Web UI 辅助函数）的测试
+- `test_evaluation.py`：`evaluation.py`（评估指标与评测集加载）的测试
 - `conftest.py`：测试共用的 fixtures
 
 ---

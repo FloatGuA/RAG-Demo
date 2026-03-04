@@ -1,0 +1,15 @@
+[
+  {
+    "id": "sample_1",
+    "query": "What should the model answer if context is insufficient?",
+    "expected_keywords": ["I don't know"],
+    "top_k": 1
+  },
+  {
+    "id": "sample_2",
+    "query": "What is dynamic programming?",
+    "expected_answer": "I don't know",
+    "expected_keywords": ["dynamic programming"],
+    "top_k": 3
+  }
+]
