@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from loader import Document, load_document, load_documents_from_dir, load_pdf, load_pdfs_from_dir
+from ingestion.loader import Document, load_document, load_documents_from_dir, load_pdf, load_pdfs_from_dir
 
 
 class TestLoadPdf:

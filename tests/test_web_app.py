@@ -107,9 +107,9 @@ class TestWebAppHelpers:
         lines = format_debug_lines(debug)
         print("[EXPECTED] lines contain llm/chunk fields | 输出包含 llm/chunk 字段")
         text = "\n".join(lines)
-        assert "时间戳" in text
-        assert "是否使用大模型" in text
-        assert "检索到的 chunks 数" in text
+        assert "时间戳 / Timestamp" in text
+        assert "是否使用大模型 / Remote LLM used" in text
+        assert "Retrieved chunks" in text
         assert "qwen-plus" in text
         print("[PASS] debug line rendering ok | 调试行渲染正确\n")
 

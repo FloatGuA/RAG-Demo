@@ -13,7 +13,7 @@ import argparse
 import os
 import sys
 
-from chunking import chunks_to_dicts
+from ingestion import chunks_to_dicts
 from config.defaults import (
     DEFAULT_CHUNK_SIZE,
     DEFAULT_EMBED_DIM,
@@ -28,15 +28,12 @@ from config.defaults import (
 )
 from config.env import get_llm_default, load_env_defaults
 from config.paths import CHUNKS_PATH, FAISS_INDEX_PATH, VECTORS_PATH
-from formatter import format_response
-from generator import generate_answer
+from retrieval import format_response, generate_answer, build_prompt, retrieve_top_k
 from pipeline.build import build_or_load_chunks, build_or_load_faiss_index, build_or_load_vectors
-from prompt import build_prompt
-from retriever import retrieve_top_k
 
 
 def parse_args() -> argparse.Namespace:
-    env_defaults = load_env_defaults(".env")
+    env_defaults = load_env_defaults()
     parser = argparse.ArgumentParser(description="RAG-Demo 主流程入口（offline + online）")
     parser.add_argument(
         "--force-rebuild",

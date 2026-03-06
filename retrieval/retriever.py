@@ -5,11 +5,9 @@
 
 from __future__ import annotations
 
-from embedding import VectorStore, embed_text, has_faiss, search_faiss
+import numpy as np
 
-
-def _dot(a: list[float], b: list[float]) -> float:
-    return float(sum(x * y for x, y in zip(a, b)))
+from ingestion.embedding import VectorStore, embed_text, has_faiss, search_faiss
 
 
 def retrieve_top_k(
@@ -38,17 +36,27 @@ def retrieve_top_k(
     if not store.vectors:
         return []
 
+    qvec = embed_text(query, dim=store.dim, backend=store.backend)
+
+    actual_stored_dim = len(store.vectors[0]) if store.vectors else store.dim
+    if len(qvec) != actual_stored_dim:
+        raise ValueError(
+            f"Query vector dim {len(qvec)} != stored vector dim {actual_stored_dim}. "
+            "Please run --force-rebuild after switching embedding backend."
+        )
+
     if faiss_index is not None and has_faiss():
         ranked = search_faiss(
             faiss_index,
-            embed_text(query, dim=store.dim),
+            qvec,
             top_k=min(top_k, len(store.vectors)),
         )
     else:
-        qvec = embed_text(query, dim=store.dim)
-        scored = [(idx, _dot(qvec, vec)) for idx, vec in enumerate(store.vectors)]
-        scored.sort(key=lambda item: item[1], reverse=True)
-        ranked = scored[:top_k]
+        mat = np.array(store.vectors, dtype=np.float32)   # (n, dim)
+        q = np.array(qvec, dtype=np.float32)               # (dim,)
+        scores = mat @ q                                    # (n,)
+        top_indices = np.argsort(scores)[::-1][:top_k]
+        ranked = [(int(i), float(scores[i])) for i in top_indices]
 
     results: list[dict] = []
     for idx, score in ranked:

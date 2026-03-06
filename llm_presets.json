@@ -1,11 +1,18 @@
 {
-  "default_provider": "openai_compatible",
+  "default_provider": "ollama",
   "providers": {
     "local": {
       "base_url": "",
       "timeout_sec": 120,
       "models": [
         "local-fallback"
+      ]
+    },
+    "ollama": {
+      "base_url": "http://localhost:11434/v1",
+      "timeout_sec": 120,
+      "models": [
+        "qwen3:8b"
       ]
     },
     "openai": {

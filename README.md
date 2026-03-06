@@ -50,9 +50,9 @@ flowchart TB
     subgraph offline ["① 离线构建链路"]
         direction LR
         docs["📄 文档\nPDF / PPTX / DOCX / MD"]
-        loader["loader.py\n文档加载"]
-        chunking["chunking.py\n分段切片"]
-        emb["embedding.py\n向量化"]
+        loader["ingestion/loader.py\n文档加载"]
+        chunking["ingestion/chunking.py\n分段切片"]
+        emb["ingestion/embedding.py\n向量化"]
         vecstore["VectorStore\nartifacts/vectors/"]
         faiss["FAISS Index\nartifacts/index/"]
 
@@ -63,10 +63,10 @@ flowchart TB
     subgraph online ["② 在线问答链路"]
         direction LR
         query["❓ 用户提问"]
-        retriever["retriever.py\nTop-k 检索"]
-        prompt["prompt.py\nPrompt 构建"]
-        generator["generator.py\nLLM 生成"]
-        formatter["formatter.py\n答案 + 来源"]
+        retriever["retrieval/retriever.py\nTop-k 检索"]
+        prompt["retrieval/prompt.py\nPrompt 构建"]
+        generator["retrieval/generator.py\nLLM 生成"]
+        formatter["retrieval/formatter.py\n答案 + 来源"]
 
         query --> retriever --> prompt --> generator --> formatter
     end
@@ -112,6 +112,18 @@ The architecture separates the system into four layers: (1) Offline indexing pip
 
 架构分四层：① 离线索引流水线 ② 在线问答流水线 ③ 应用接口（CLI / Web）④ 评估框架
 
+**文件位置** / *File layout*：
+
+| 层级 | 目录 / 文件 | 说明 |
+|------|-------------|------|
+| 离线链路 | `ingestion/` | loader.py、chunking.py、embedding.py |
+| 在线链路 | `retrieval/` | retriever.py、prompt.py、generator.py、formatter.py |
+| 编排层 | `pipeline/` | build.py（调用 ingestion）、query.py（调用 retrieval） |
+| 配置 | `config/` | defaults.py、paths.py、env.py |
+| 入口 | 根目录 | cli.py、main.py、app.py、web_app.py、evaluation.py |
+
+详细技术说明见 [TECHNICAL.md](./TECHNICAL.md)。
+
 ## 项目总结（你现在拿到的能力） (Project Summary)
 
 From offline document processing to interactive QA: a runnable, testable, and extensible RAG pipeline.  
@@ -144,7 +156,7 @@ python cli.py web                             # Start Streamlit UI | 启动 Web 
 ## LLM 配置（支持多 Provider） (LLM Configuration)
 
 - 项目支持 `local` / `openai` / `openai_compatible` 三种 provider / *Supports 3 providers*（默认可在 `.env` 中设置）
-- 推荐在项目根目录使用 `.env` / *Use `.env` in project root*（可参考 `.env.example`）：
+- 在项目根目录编辑 `.env` / *Edit `.env` in project root*：
   - `OPENAI_API_KEY=...`
   - `LLM_PROVIDER=openai_compatible`
   - `LLM_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1`
@@ -154,11 +166,11 @@ python cli.py web                             # Start Streamlit UI | 启动 Web 
 
 ## 30 秒快速上手 (Quick Start)
 
-1) 安装依赖并创建 `.env` / *Install deps and create `.env`*：
+1) 安装依赖，按需编辑 `.env` / *Install deps, edit `.env` if using cloud API*：
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env   # Edit and add your API Key | 编辑并填入 API Key
+# 使用 DashScope 时编辑 .env 填入 OPENAI_API_KEY
 ```
 
 2) 离线构建（首次运行）/ *Build offline (first run)*：

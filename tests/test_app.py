@@ -5,7 +5,7 @@ app.py 单元测试
 import pytest
 
 from pipeline import answer_with_store, render_response
-from embedding import build_vector_store
+from ingestion.embedding import build_vector_store
 
 
 class TestAppFlow:

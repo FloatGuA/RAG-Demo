@@ -2,13 +2,13 @@
 
 本目录包含项目的单元测试：
 
-- `test_loader.py`：`loader.py` 的测试
-- `test_chunking.py`：`chunking.py` 的测试
-- `test_storage_chunks.py`：`chunking.py` 中 `save_chunks/load_chunks` 的测试
-- `test_embedding.py`：`embedding.py`（向量化 + 向量持久化 + FAISS 集成）的测试
-- `test_retriever.py`：`retriever.py`（Top-k 检索）的测试
-- `test_prompt.py`：`prompt.py`（RAG prompt 组装）的测试
-- `test_generator.py`：`generator.py` + `formatter.py`（回答生成与来源格式化）的测试
+- `test_loader.py`：`ingestion/loader.py` 的测试
+- `test_chunking.py`：`ingestion/chunking.py` 的测试
+- `test_storage_chunks.py`：`ingestion/chunking.py` 中 `save_chunks/load_chunks` 的测试
+- `test_embedding.py`：`ingestion/embedding.py`（向量化 + 向量持久化 + FAISS 集成）的测试
+- `test_retriever.py`：`retrieval/retriever.py`（Top-k 检索）的测试
+- `test_prompt.py`：`retrieval/prompt.py`（RAG prompt 组装）的测试
+- `test_generator.py`：`retrieval/generator.py` + `retrieval/formatter.py`（回答生成与来源格式化）的测试
 - `test_app.py`：`app.py`（CLI 应用入口与输出渲染）的测试
 - `test_web_app.py`：`web_app.py`（Web UI 辅助函数）的测试
 - `test_evaluation.py`：`evaluation.py`（评估指标与评测集加载）的测试

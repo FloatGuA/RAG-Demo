@@ -64,7 +64,7 @@ def _resolve_provider(provider: str | None, use_openai: bool) -> str:
         resolved = provider.strip().lower()
     else:
         resolved = "openai" if use_openai else "local"
-    allowed = {"local", "openai", "openai_compatible"}
+    allowed = {"local", "openai", "openai_compatible", "ollama"}
     if resolved not in allowed:
         raise ValueError(f"不支持的 provider: {resolved}，可选: {sorted(allowed)}")
     return resolved

@@ -4,7 +4,7 @@ prompt.py 单元测试
 
 import pytest
 
-from prompt import build_prompt
+from retrieval.prompt import build_prompt
 
 
 class TestPromptBuilder:

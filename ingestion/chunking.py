@@ -6,8 +6,11 @@
 from dataclasses import asdict, dataclass
 import json
 from pathlib import Path
+import re
 
-from loader import Document
+from ingestion.loader import Document
+
+_PARA_RE = re.compile(r"\n{2,}")
 
 
 @dataclass
@@ -18,6 +21,28 @@ class Chunk:
     page: int     # 页码
 
 
+def _sliding_window(text: str, chunk_size: int, overlap: int) -> list[str]:
+    """对单段过长文本做滑动窗口切分（内部辅助函数）。"""
+    segments: list[str] = []
+    start = 0
+    while start < len(text):
+        end = start + chunk_size
+        seg = text[start:end]
+        if end < len(text):
+            break_at = max(
+                seg.rfind("。"),
+                seg.rfind("\n"),
+                seg.rfind("."),
+                seg.rfind(" "),
+            )
+            if break_at > chunk_size // 2:
+                seg = seg[: break_at + 1]
+                end = start + break_at + 1
+        segments.append(seg.strip())
+        start = end - overlap
+    return [s for s in segments if s]
+
+
 def chunk_document(
     doc: Document,
     chunk_size: int = 500,
@@ -26,10 +51,15 @@ def chunk_document(
     """
     将单个 Document 切分为 Chunks。
 
+    策略（paragraph-first）：
+    1. 先按空行（\\n\\n+）切成自然段落，保证语义完整性。
+    2. 段落长度 <= chunk_size：整段作为一个 chunk。
+    3. 段落过长：对该段做滑动窗口细切（overlap 在此生效）。
+
     Args:
         doc: 输入的 Document
         chunk_size: 每块最大字符数
-        overlap: 块间重叠字符数
+        overlap: 长段滑动窗口的块间重叠字符数
 
     Returns:
         List[Chunk]
@@ -41,32 +71,18 @@ def chunk_document(
     if not text:
         return []
 
-    chunks = []
-    start = 0
-    while start < len(text):
-        end = start + chunk_size
-        chunk_text = text[start:end]
+    paragraphs = [p.strip() for p in _PARA_RE.split(text) if p.strip()]
+    if not paragraphs:
+        return []
 
-        # 尽量在句末、换行处切断，避免 mid-word
-        if end < len(text):
-            break_at = max(
-                chunk_text.rfind("。"),
-                chunk_text.rfind("\n"),
-                chunk_text.rfind("."),
-                chunk_text.rfind(" "),
-            )
-            if break_at > chunk_size // 2:  # 至少保留一半内容
-                chunk_text = chunk_text[: break_at + 1]
-                end = start + break_at + 1
+    segments: list[str] = []
+    for para in paragraphs:
+        if len(para) <= chunk_size:
+            segments.append(para)
+        else:
+            segments.extend(_sliding_window(para, chunk_size, overlap))
 
-        chunks.append(Chunk(
-            text=chunk_text.strip(),
-            source=doc.source,
-            page=doc.page,
-        ))
-        start = end - overlap
-
-    return [c for c in chunks if c.text]
+    return [Chunk(text=s, source=doc.source, page=doc.page) for s in segments]
 
 
 def chunk_documents(
@@ -135,7 +151,7 @@ def load_chunks(path: str) -> list[dict]:
 
 
 if __name__ == "__main__":
-    from loader import load_pdfs_from_dir
+    from ingestion.loader import load_pdfs_from_dir
 
     chunks_path = Path("artifacts/chunks/chunks.json")
     legacy_chunks_path = Path("storage/chunks.json")

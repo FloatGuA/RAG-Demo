@@ -24,7 +24,7 @@ from pipeline import answer_with_store, build_runtime, render_response
 
 
 def parse_args() -> argparse.Namespace:
-    env_defaults = load_env_defaults(".env")
+    env_defaults = load_env_defaults()
     parser = argparse.ArgumentParser(description="RAG-Demo Phase 4 CLI 应用入口")
     parser.add_argument("--query", type=str, default="", help="单次查询；留空则进入交互模式")
     parser.add_argument("--top-k", type=int, default=DEFAULT_TOP_K, help=f"检索 top_k（默认 {DEFAULT_TOP_K}）")

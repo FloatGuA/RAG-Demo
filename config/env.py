@@ -6,13 +6,28 @@ import os
 from pathlib import Path
 
 
-def load_env_defaults(path: str = ".env") -> dict[str, str]:
-    """解析 .env 文件，返回 key-value 字典。不存在时返回空 dict。"""
-    values: dict[str, str] = {}
-    p = Path(path)
+class EnvNotFoundError(FileNotFoundError):
+    """环境配置文件缺失。"""
+
+
+def load_env_defaults(path: str | None = None) -> dict[str, str]:
+    """解析 .env 文件，返回 key-value 字典。文件不存在时抛出 EnvNotFoundError 并提示创建方式。"""
+    p = Path(path) if path else Path(".env")
     if not p.exists():
-        return values
-    for raw_line in p.read_text(encoding="utf-8").splitlines():
+        raise EnvNotFoundError(
+            f"环境配置文件不存在: {p}\n"
+            "请在项目根目录创建 .env 文件，参考格式：\n"
+            "  OPENAI_API_KEY=your_key_here\n"
+            "  LLM_PROVIDER=ollama"
+        )
+    values: dict[str, str] = {}
+    _parse_env_file(p, values)
+    return values
+
+
+def _parse_env_file(path: Path, out: dict[str, str]) -> None:
+    """解析 .env 格式文件，结果写入 out。"""
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue
@@ -20,8 +35,7 @@ def load_env_defaults(path: str = ".env") -> dict[str, str]:
         key = key.strip()
         value = value.strip().strip('"').strip("'")
         if key:
-            values[key] = value
-    return values
+            out[key] = value
 
 
 def get_llm_default(key: str, fallback: str = "", *, env_defaults: dict[str, str] | None = None) -> str:

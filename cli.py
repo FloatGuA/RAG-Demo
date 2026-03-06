@@ -19,6 +19,7 @@ import typer
 
 from config.defaults import (
     DEFAULT_CHUNK_SIZE,
+    DEFAULT_EMBED_BACKEND,
     DEFAULT_EMBED_DIM,
     DEFAULT_LLM_MAX_RETRIES,
     DEFAULT_LLM_MODEL,
@@ -30,25 +31,33 @@ from config.defaults import (
     DEFAULT_TEMPERATURE,
 )
 from config.env import get_llm_default, load_env_defaults
+from config.llm_presets import (
+    get_default_base_url,
+    get_default_model,
+    load_llm_presets,
+)
 from config.paths import CHUNKS_PATH, FAISS_INDEX_PATH, VECTORS_PATH
 
 app = typer.Typer(help="RAG-Demo 统一命令行入口", add_completion=False)
 
-_env = load_env_defaults(".env")
+_env = load_env_defaults()
+_presets = load_llm_presets()
 
 
-# ── 共享参数默认值 ─────────────────────────────────
+# ── 共享参数默认值（Provider 来自 .env，base_url/model 来自 llm_presets.json）───
 
 def _provider_default() -> str:
     return get_llm_default("LLM_PROVIDER", DEFAULT_LLM_PROVIDER, env_defaults=_env)
 
 
 def _model_default() -> str:
-    return get_llm_default("LLM_MODEL", DEFAULT_LLM_MODEL, env_defaults=_env)
+    provider = _provider_default()
+    return get_default_model(_presets, provider)
 
 
 def _base_url_default() -> str:
-    return get_llm_default("LLM_BASE_URL", "", env_defaults=_env)
+    provider = _provider_default()
+    return get_default_base_url(_presets, provider)
 
 
 # ── build ──────────────────────────────────────────
@@ -59,6 +68,7 @@ def build(
     chunk_size: int = typer.Option(DEFAULT_CHUNK_SIZE, help="chunk 最大字符数"),
     overlap: int = typer.Option(DEFAULT_OVERLAP, help="chunk 重叠字符数"),
     embed_dim: int = typer.Option(DEFAULT_EMBED_DIM, help="向量维度"),
+    embed_backend: str = typer.Option(DEFAULT_EMBED_BACKEND, help="embedding 后端（auto/sentence_transformers/hash）"),
     preview: int = typer.Option(DEFAULT_PREVIEW, help="预览前 N 个 chunk"),
 ) -> None:
     """离线构建 chunks / vectors / FAISS index。"""
@@ -71,7 +81,7 @@ def build(
     chunks, src = build_or_load_chunks(force_rebuild=force_rebuild, chunk_size=chunk_size, overlap=overlap)
     typer.echo(f"[BUILD] chunks: {len(chunks)} ({src})")
 
-    vs, vs_src = build_or_load_vectors(chunks, force_rebuild=force_rebuild, dim=embed_dim)
+    vs, vs_src = build_or_load_vectors(chunks, force_rebuild=force_rebuild, dim=embed_dim, backend=embed_backend)
     typer.echo(f"[BUILD] vectors: dim={vs.dim}, count={len(vs.vectors)} ({vs_src})")
 
     fi, fi_src = build_or_load_faiss_index(vs, force_rebuild=force_rebuild)
@@ -102,11 +112,12 @@ def query(
     chunk_size: int = typer.Option(DEFAULT_CHUNK_SIZE, help="chunk size"),
     overlap: int = typer.Option(DEFAULT_OVERLAP, help="overlap"),
     embed_dim: int = typer.Option(DEFAULT_EMBED_DIM, help="向量维度"),
+    embed_backend: str = typer.Option(DEFAULT_EMBED_BACKEND, help="embedding 后端（auto/sentence_transformers/hash）"),
 ) -> None:
     """单次问答：给定问题，返回答案与来源。"""
     from pipeline import answer_with_store, build_runtime, render_response
 
-    vs, fi = build_runtime(force_rebuild=force_rebuild, chunk_size=chunk_size, overlap=overlap, embed_dim=embed_dim)
+    vs, fi = build_runtime(force_rebuild=force_rebuild, chunk_size=chunk_size, overlap=overlap, embed_dim=embed_dim, embed_backend=embed_backend)
     response = answer_with_store(
         question,
         vs,
@@ -142,11 +153,12 @@ def chat(
     chunk_size: int = typer.Option(DEFAULT_CHUNK_SIZE, help="chunk size"),
     overlap: int = typer.Option(DEFAULT_OVERLAP, help="overlap"),
     embed_dim: int = typer.Option(DEFAULT_EMBED_DIM, help="向量维度"),
+    embed_backend: str = typer.Option(DEFAULT_EMBED_BACKEND, help="embedding 后端（auto/sentence_transformers/hash）"),
 ) -> None:
     """交互式 REPL：输入问题回车，输入 exit/quit 退出。"""
     from pipeline import answer_with_store, build_runtime, render_response
 
-    vs, fi = build_runtime(force_rebuild=force_rebuild, chunk_size=chunk_size, overlap=overlap, embed_dim=embed_dim)
+    vs, fi = build_runtime(force_rebuild=force_rebuild, chunk_size=chunk_size, overlap=overlap, embed_dim=embed_dim, embed_backend=embed_backend)
     typer.echo("RAG CLI 已启动。输入问题后回车；输入 exit/quit 退出。")
     while True:
         q = input("\nQuestion> ").strip()
@@ -179,9 +191,9 @@ def evaluate(
     eval_set: str = typer.Option("eval/eval_set.example.json", help="评测集 JSON 路径"),
     output: str = typer.Option("artifacts/eval/latest_report.json", help="报告输出路径"),
     top_k: int = typer.Option(DEFAULT_TOP_K, help="默认检索 top_k"),
-    llm_provider: str = typer.Option(DEFAULT_LLM_PROVIDER, help="LLM provider"),
-    llm_model: str = typer.Option(DEFAULT_LLM_MODEL, help="模型名"),
-    llm_base_url: str = typer.Option("", help="Base URL"),
+    llm_provider: str = typer.Option(_provider_default(), help="LLM provider"),
+    llm_model: str = typer.Option(_model_default(), help="模型名"),
+    llm_base_url: str = typer.Option(_base_url_default(), help="Base URL"),
     temperature: float = typer.Option(DEFAULT_TEMPERATURE, help="采样温度"),
     llm_timeout: float = typer.Option(DEFAULT_LLM_TIMEOUT, help="超时（秒）"),
     llm_max_retries: int = typer.Option(DEFAULT_LLM_MAX_RETRIES, help="重试次数"),
@@ -191,6 +203,7 @@ def evaluate(
     chunk_size: int = typer.Option(DEFAULT_CHUNK_SIZE, help="chunk size"),
     overlap: int = typer.Option(DEFAULT_OVERLAP, help="overlap"),
     embed_dim: int = typer.Option(DEFAULT_EMBED_DIM, help="向量维度"),
+    embed_backend: str = typer.Option(DEFAULT_EMBED_BACKEND, help="embedding 后端（auto/sentence_transformers/hash）"),
 ) -> None:
     """批量评估：跑评测集并输出指标报告。"""
     import json
@@ -200,7 +213,7 @@ def evaluate(
     from pipeline import answer_with_store, build_runtime
 
     cases = load_eval_cases(eval_set)
-    vs, fi = build_runtime(force_rebuild=force_rebuild, chunk_size=chunk_size, overlap=overlap, embed_dim=embed_dim)
+    vs, fi = build_runtime(force_rebuild=force_rebuild, chunk_size=chunk_size, overlap=overlap, embed_dim=embed_dim, embed_backend=embed_backend)
 
     def _answer_fn(case: dict) -> dict:
         case_top_k = int(case.get("top_k", top_k))

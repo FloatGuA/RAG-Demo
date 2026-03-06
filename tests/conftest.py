@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from pypdf import PdfWriter
 
-from loader import Document
+from ingestion.loader import Document
 
 
 @pytest.fixture

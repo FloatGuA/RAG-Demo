@@ -9,7 +9,7 @@ chunking.py 单元测试
 """
 import pytest
 
-from chunking import Chunk, chunk_document, chunk_documents, chunks_to_dicts, dicts_to_chunks
+from ingestion.chunking import Chunk, chunk_document, chunk_documents, chunks_to_dicts, dicts_to_chunks
 
 
 class TestChunkDocument:
@@ -111,6 +111,30 @@ class TestChunkDocument:
         print("[EXPECTED] All chunk.text non-empty (after strip) | 所有 chunk.text 非空")
         assert all(c.text.strip() for c in chunks), "产出的 chunk 不应为空"
         print("[PASS] No empty chunks | 无空 chunk\n")
+
+    def test_paragraph_boundaries_respected(self):
+        """场景：文本含两个段落（\\n\\n 分隔），每段 < chunk_size；预期：各段独立成一个 chunk。"""
+        print("\n[TEST START] Paragraph-first: two short paragraphs → two chunks | 两短段落各为一个 chunk")
+        from ingestion.loader import Document
+        text = "First paragraph content.\n\nSecond paragraph content."
+        doc = Document(content=text, source="p.pdf", page=1)
+        chunks = chunk_document(doc, chunk_size=200, overlap=20)
+        assert len(chunks) == 2, "两个段落应各自成为一个 chunk"
+        assert "First paragraph" in chunks[0].text
+        assert "Second paragraph" in chunks[1].text
+        print("[PASS] Paragraph boundaries respected\n")
+
+    def test_long_paragraph_is_slide_chunked(self):
+        """场景：单段落超过 chunk_size；预期：被滑动窗口切成多个 chunk。"""
+        print("\n[TEST START] Paragraph-first: long single paragraph → multiple slide chunks | 长段落滑动切分")
+        from ingestion.loader import Document
+        long_para = "Word " * 200  # ~1000 chars, no blank lines
+        doc = Document(content=long_para, source="p.pdf", page=1)
+        chunks = chunk_document(doc, chunk_size=100, overlap=10)
+        assert len(chunks) >= 2, "单段过长应被切成多个 chunk"
+        for c in chunks:
+            assert len(c.text) <= 100 + 50
+        print("[PASS] Long paragraph slide-chunked correctly\n")
 
     def test_overlap_produces_more_chunks_than_no_overlap(self, sample_document):
         """场景：同一文本比较 overlap=0 与 overlap>0；预期：均可正常切分。"""

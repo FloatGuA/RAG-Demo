@@ -9,7 +9,7 @@ chunking.py 中 save/load_chunks 单元测试
 
 import pytest
 
-from chunking import load_chunks, save_chunks
+from ingestion.chunking import load_chunks, save_chunks
 
 
 class TestStorageChunks:

@@ -4,8 +4,8 @@ generator.py 与 formatter.py 单元测试
 
 import pytest
 
-from formatter import format_response
-from generator import generate_answer
+from retrieval.formatter import format_response
+from retrieval.generator import generate_answer
 
 
 class TestGenerator:

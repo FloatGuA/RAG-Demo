@@ -67,15 +67,15 @@
 
 | 模块 | 状态 | 代码位置 |
 |------|------|----------|
-| Loader | 已实现 | `loader.py` |
-| Chunking | 已实现 | `chunking.py` |
-| Chunk 持久化 | 已实现（内联） | `chunking.py` |
+| Loader | 已实现 | `ingestion/loader.py` |
+| Chunking | 已实现 | `ingestion/chunking.py` |
+| Chunk 持久化 | 已实现（内联） | `ingestion/chunking.py` |
 | Main 流程 | 已实现 | `main.py` |
-| Embedding | 已实现 | `embedding.py` |
-| Retriever | 已实现 | `retriever.py` |
-| Prompt Builder | 已实现 | `prompt.py` |
-| Generator | 已实现（多 provider） | `generator.py` |
-| Formatter | 已实现 | `formatter.py` |
+| Embedding | 已实现 | `ingestion/embedding.py` |
+| Retriever | 已实现 | `retrieval/retriever.py` |
+| Prompt Builder | 已实现 | `retrieval/prompt.py` |
+| Generator | 已实现（多 provider） | `retrieval/generator.py` |
+| Formatter | 已实现 | `retrieval/formatter.py` |
 | Evaluation | 已实现 | `evaluation.py` |
 | Config | 已实现 | `config/` |
 | Pipeline | 已实现 | `pipeline/` |

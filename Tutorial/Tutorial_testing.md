@@ -14,13 +14,13 @@
 
 当前测试文件（Phase 1 + Phase 2 + Phase 3 + Phase 4）：
 
-- `tests/test_loader.py`：测试 `loader.py`
-- `tests/test_chunking.py`：测试 `chunking.py`
-- `tests/test_storage_chunks.py`：测试 `chunking.py` 中 `save_chunks/load_chunks`
-- `tests/test_embedding.py`：测试 `embedding.py`（向量化 + 向量持久化 + FAISS）
-- `tests/test_retriever.py`：测试 `retriever.py`（Top-k 检索）
-- `tests/test_prompt.py`：测试 `prompt.py`（prompt 组装）
-- `tests/test_generator.py`：测试 `generator.py` + `formatter.py`
+- `tests/test_loader.py`：测试 `ingestion/loader.py`
+- `tests/test_chunking.py`：测试 `ingestion/chunking.py`
+- `tests/test_storage_chunks.py`：测试 `ingestion/chunking.py` 中 `save_chunks/load_chunks`
+- `tests/test_embedding.py`：测试 `ingestion/embedding.py`（向量化 + 向量持久化 + FAISS）
+- `tests/test_retriever.py`：测试 `retrieval/retriever.py`（Top-k 检索）
+- `tests/test_prompt.py`：测试 `retrieval/prompt.py`（prompt 组装）
+- `tests/test_generator.py`：测试 `retrieval/generator.py` + `retrieval/formatter.py`
 - `tests/test_app.py`：测试 `app.py`（CLI 应用流程与渲染）
 - `tests/test_web_app.py`：测试 `web_app.py`（Web UI 辅助函数）
 - `tests/test_evaluation.py`：测试 `evaluation.py`（评估指标计算与评测集加载）

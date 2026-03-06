@@ -50,6 +50,14 @@ PDF → Text → Chunk → Embedding → Vector Store
 Query → Retrieval → Prompt → LLM → Answer
 ```
 
+## **文件布局**
+
+| 阶段 | 目录 | 模块 |
+|------|------|------|
+| 离线 | `ingestion/` | loader.py、chunking.py、embedding.py |
+| 在线 | `retrieval/` | retriever.py、prompt.py、generator.py、formatter.py |
+| 编排 | `pipeline/` | build.py、query.py |
+
 ---
 
 # 四、模块拆解（核心部分）
@@ -335,12 +343,15 @@ Sources:
 rag-demo/
 │
 ├── data/
-├── loader.py
-├── chunking.py
-├── embedding.py
-├── retriever.py
-├── prompt.py
-├── generator.py
+├── ingestion/
+│   ├── loader.py
+│   ├── chunking.py
+│   └── embedding.py
+├── retrieval/
+│   ├── retriever.py
+│   ├── prompt.py
+│   ├── generator.py
+│   └── formatter.py
 ├── app.py
 ```
 

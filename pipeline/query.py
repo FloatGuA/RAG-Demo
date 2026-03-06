@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from formatter import format_response
-from generator import generate_answer_with_meta
-from prompt import build_prompt
-from retriever import retrieve_top_k
+from retrieval import (
+    format_response,
+    generate_answer_with_meta,
+    build_prompt,
+    retrieve_top_k,
+)
 
 
 def answer_with_store(

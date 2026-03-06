@@ -2,19 +2,19 @@
 
 ## 1. 模块作用（What）
 
-`chunking.py` 负责把 `Document` 切成可检索的 `Chunk`，并提供 chunk 的持久化能力。
+`ingestion/chunking.py` 负责把 `Document` 切成可检索的 `Chunk`，并提供 chunk 的持久化能力。
 
 ## 2. 设计思路（Why）
 
 - LLM 和检索模型通常不适合直接处理长文档，需先切分。
-- 通过 `chunk_size + overlap` 保留上下文连续性。
-- 切块时尽量在句末/空白处断开，降低语义破碎。
+- **paragraph-first 策略**：优先按空行（`\n\n`）切分自然段落，段落是语义完整的最小单位，避免把一段话从中间截断。
+- 段落过长时才退化到滑动窗口，`overlap` 仅在此场景下生效，减少信息截断损失。
 - 直接内联 `save_chunks/load_chunks`，减少模块跳转，便于维护。
 
 ## 3. 核心实现（How）
 
 - 切分函数：
-  - `chunk_document(doc, chunk_size=500, overlap=50)`
+  - `chunk_document(doc, chunk_size=500, overlap=50)` — paragraph-first 策略
   - `chunk_documents(documents, chunk_size=500, overlap=50)`
 - 序列化函数：
   - `chunks_to_dicts(chunks)`
@@ -37,10 +37,10 @@
 
 ## 5. 模块关系（上下游）
 
-- 上游：`loader.py` 产出的 `List[Document]`
+- 上游：`ingestion/loader.py` 产出的 `List[Document]`
 - 下游：
   - 近期：`main.py` 主流程编排
-  - 后续：`embedding.py` 读取 `List[Chunk]` 做向量化
+  - 后续：`ingestion/embedding.py` 读取 `List[Chunk]` 做向量化
 
 ## 6. 接口细节（Inputs / Outputs）
 
@@ -69,6 +69,8 @@
 
 - 对应：`tests/test_chunking.py`、`tests/test_storage_chunks.py`
 - 覆盖点：
+  - paragraph-first：两段落 → 两 chunk
+  - 长段落 → 滑动窗口多 chunk
   - 切分逻辑与顺序
   - 边界参数校验
   - 持久化 round-trip 一致性
@@ -82,18 +84,19 @@
 
 ## 11. 端到端流程（这一部分如何工作）
 
-1. 接收 `List[Document]`  
-2. 按 `chunk_size/overlap` 将长文本分割成多个 `Chunk`  
-3. 每个 `Chunk` 保留原始 `source/page` 元数据  
-4. 调用 `chunks_to_dicts()` 转为可持久化结构  
-5. 调用 `save_chunks()` 写入 `artifacts/chunks/chunks.json`  
-6. 运行时优先 `load_chunks()` 复用缓存
+1. 接收 `List[Document]`
+2. 按 `\n\n` 切分自然段落（paragraph-first）
+3. 段落 ≤ chunk_size → 整段一个 chunk；段落 > chunk_size → 滑动窗口细切
+4. 每个 `Chunk` 保留原始 `source/page` 元数据
+5. 调用 `chunks_to_dicts()` 转为可持久化结构
+6. 调用 `save_chunks()` 写入 `artifacts/chunks/chunks.json`
+7. 运行时优先 `load_chunks()` 复用缓存
 
 ## 12. 核心函数在做什么，为什么这样做
 
 - `chunk_document()`：
-  - **做什么**：单文档切块，控制长度与重叠
-  - **为什么**：保证检索粒度可控，避免上下文过长导致召回不准
+  - **做什么**：单文档 paragraph-first 切块
+  - **为什么**：段落是最自然的语义单位，优先尊重段落边界能显著减少语义碎片，提升检索质量
 - `chunk_documents()`：
   - **做什么**：批量文档切块并合并输出
   - **为什么**：统一多文档处理入口，简化主流程编排

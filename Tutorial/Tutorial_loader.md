@@ -2,7 +2,7 @@
 
 ## 1. 模块作用（What）
 
-`loader.py` 负责读取多类型课程文档，并转换为结构化 `Document`：
+`ingestion/loader.py` 负责读取多类型课程文档，并转换为结构化 `Document`：
 
 - `content`: 页文本
 - `source`: 文件名
@@ -36,7 +36,7 @@
 ## 5. 模块关系（上下游）
 
 - 上游：`data/` 中的多类型文档（PDF/PPTX/DOCX/MD）
-- 下游：`chunking.py` 的 `chunk_document()` / `chunk_documents()`
+- 下游：`ingestion/chunking.py` 的 `chunk_document()` / `chunk_documents()`
 
 ## 6. 接口细节（Inputs / Outputs）
 
@@ -85,7 +85,7 @@
 2. 统一入口根据扩展名路由到对应解析器  
 3. 解析文本并生成 `Document(content, source, page)`  
 4. 汇总输出 `List[Document]`  
-5. 交给 `chunking.py` 执行切块
+5. 交给 `ingestion/chunking.py` 执行切块
 
 ## 12. 核心函数在做什么，为什么这样做
 

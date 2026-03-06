@@ -3,15 +3,18 @@ embedding.py 单元测试
 """
 
 import importlib.util
+import json
 
+import numpy as np
 import pytest
 
-from embedding import (
+from ingestion.embedding import (
     VectorStore,
     build_faiss_index,
     build_vector_store,
     embed_text,
     has_faiss,
+    has_sentence_transformers,
     load_faiss_index,
     load_vectors,
     save_faiss_index,
@@ -21,88 +24,152 @@ from embedding import (
 
 
 class TestEmbedding:
-    def test_embed_text_has_fixed_dim(self):
-        print("\n[TEST START] Embedding dimension fixed | 向量维度固定")
-        print("[INPUT] text='hello world', dim=64 | 文本与维度")
-        print("[ACTION] call embed_text | 调用 embed_text")
-        vec = embed_text("hello world", dim=64)
-        print("[EXPECTED] len(vec)==64 | 向量长度为 64")
+    def test_embed_text_hash_has_fixed_dim(self):
+        print("\n[TEST START] Hash backend dimension fixed | hash 后端向量维度固定")
+        vec = embed_text("hello world", dim=64, backend="hash")
         assert len(vec) == 64
-        print("[PASS] fixed dimension ok | 固定维度正确\n")
+        print("[PASS] fixed dimension ok\n")
 
-    def test_embed_text_is_deterministic(self):
-        print("\n[TEST START] Embedding deterministic | 向量可复现")
-        print("[INPUT] same text twice | 同一文本两次")
-        print("[ACTION] call embed_text twice | 调用两次 embed_text")
-        v1 = embed_text("Deterministic test", dim=128)
-        v2 = embed_text("Deterministic test", dim=128)
-        print("[EXPECTED] v1 == v2 | 两次结果一致")
+    def test_embed_text_hash_is_deterministic(self):
+        print("\n[TEST START] Hash backend deterministic | hash 后端可复现")
+        v1 = embed_text("Deterministic test", dim=128, backend="hash")
+        v2 = embed_text("Deterministic test", dim=128, backend="hash")
         assert v1 == v2
-        print("[PASS] deterministic behavior ok | 可复现行为正确\n")
+        print("[PASS] deterministic behavior ok\n")
 
-    def test_build_vector_store_structure(self):
-        print("\n[TEST START] Build vector store structure | 构建向量存储结构")
+    def test_embed_text_auto_returns_nonempty(self):
+        print("\n[TEST START] Auto backend returns non-empty vector | auto 后端返回非空向量")
+        vec = embed_text("hello world", dim=256)
+        assert len(vec) > 0
+        assert isinstance(vec[0], float)
+        print("[PASS] auto backend ok\n")
+
+    def test_embed_text_auto_is_deterministic(self):
+        print("\n[TEST START] Auto backend deterministic | auto 后端可复现")
+        v1 = embed_text("Deterministic test", dim=256)
+        v2 = embed_text("Deterministic test", dim=256)
+        assert v1 == v2
+        print("[PASS] deterministic ok\n")
+
+    @pytest.mark.skipif(not has_sentence_transformers(), reason="需要 sentence-transformers")
+    def test_embed_text_st_backend_dim(self):
+        print("\n[TEST START] ST backend returns 384-dim vector | ST 后端返回 384 维向量")
+        vec = embed_text("hello world", backend="sentence_transformers")
+        assert len(vec) == 384
+        print("[PASS] ST dim ok\n")
+
+    def test_build_vector_store_structure_hash(self):
+        print("\n[TEST START] Build vector store (hash backend) | 构建向量存储（hash）")
         chunks = [
             {"text": "A text", "source": "a.pdf", "page": 1},
             {"text": "B text", "source": "b.pdf", "page": 2},
         ]
-        print("[INPUT] 2 chunks dicts | 两个 chunk 字典")
-        print("[ACTION] call build_vector_store | 调用 build_vector_store")
-        store = build_vector_store(chunks, dim=32)
-        print("[EXPECTED] store dim=32 and length=2 | dim=32 且长度为 2")
+        store = build_vector_store(chunks, dim=32, backend="hash")
         assert isinstance(store, VectorStore)
         assert store.dim == 32
         assert len(store.vectors) == 2
         assert len(store.metadata) == 2
-        print("[PASS] vector store structure ok | 向量存储结构正确\n")
+        print("[PASS] vector store structure ok\n")
+
+    def test_build_vector_store_detects_actual_dim(self):
+        print("\n[TEST START] build_vector_store detects actual dim | 自动检测实际维度")
+        chunks = [{"text": "hello", "source": "a.pdf", "page": 1}]
+        store = build_vector_store(chunks, dim=64, backend="hash")
+        assert store.dim == 64
+        assert len(store.vectors[0]) == 64
+        print("[PASS] actual dim detection ok\n")
+
+    def test_build_vector_store_records_backend(self):
+        print("\n[TEST START] build_vector_store records resolved backend | 记录 resolved backend")
+        chunks = [{"text": "hello", "source": "a.pdf", "page": 1}]
+        store = build_vector_store(chunks, dim=32, backend="hash")
+        assert store.backend == "hash"
+        print("[PASS] backend recorded ok\n")
 
 
 class TestVectorPersistence:
-    def test_save_then_load_vectors_roundtrip(self, tmp_path):
-        print("\n[TEST START] Save/load vectors roundtrip | 向量保存加载往返一致")
+    def test_save_then_load_npz_roundtrip(self, tmp_path):
+        print("\n[TEST START] Save/load vectors npz roundtrip | npz 格式往返一致")
         store = VectorStore(
             dim=8,
             vectors=[[1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]],
             metadata=[{"text": "x", "source": "x.pdf", "page": 1}],
+            backend="hash",
         )
-        file_path = tmp_path / "vectors.json"
-        print("[INPUT] VectorStore + file path | 向量存储与文件路径")
-        print("[ACTION] save_vectors then load_vectors | 先保存再加载")
+        file_path = tmp_path / "vectors.npz"
         save_vectors(store, str(file_path))
+        assert file_path.exists(), "npz file should exist"
         loaded = load_vectors(str(file_path))
-        print("[EXPECTED] loaded equals original store | 加载后与原始一致")
         assert loaded.dim == store.dim
-        assert loaded.vectors == store.vectors
+        assert loaded.backend == store.backend
         assert loaded.metadata == store.metadata
-        print("[PASS] vector roundtrip ok | 向量往返一致\n")
+        # float32 precision: compare with tolerance
+        orig = np.array(store.vectors, dtype=np.float32)
+        result = np.array(loaded.vectors, dtype=np.float32)
+        assert np.allclose(orig, result), "vectors should match within float32 precision"
+        print("[PASS] npz roundtrip ok\n")
+
+    def test_save_npz_creates_correct_file(self, tmp_path):
+        print("\n[TEST START] save_vectors writes npz file at exact path | 文件落在指定路径")
+        store = VectorStore(dim=4, vectors=[[0.5, 0.5, 0.0, 0.0]], metadata=[{}], backend="hash")
+        path = tmp_path / "vecs.npz"
+        save_vectors(store, str(path))
+        assert path.exists()
+        raw = np.load(str(path), allow_pickle=False)
+        assert "vectors" in raw
+        assert "metadata_json" in raw
+        assert "dim" in raw
+        assert "backend" in raw
+        assert raw["vectors"].shape == (1, 4)
+        print("[PASS] npz file structure ok\n")
+
+    def test_load_vectors_json_backward_compat(self, tmp_path):
+        print("\n[TEST START] load_vectors reads old JSON format | 向后兼容旧 JSON 格式")
+        payload = {
+            "dim": 4,
+            "backend": "hash",
+            "vectors": [[0.5, 0.5, 0.0, 0.0]],
+            "metadata": [{"text": "old", "source": "f.pdf", "page": 1}],
+        }
+        json_path = tmp_path / "vectors.json"
+        json_path.write_text(json.dumps(payload), encoding="utf-8")
+        loaded = load_vectors(str(json_path))
+        assert loaded.dim == 4
+        assert loaded.backend == "hash"
+        assert loaded.metadata == payload["metadata"]
+        print("[PASS] JSON backward compat ok\n")
 
     def test_load_vectors_missing_file_raises(self, tmp_path):
         print("\n[TEST START] Missing vectors file raises | 缺失向量文件报错")
-        missing = tmp_path / "not_exists.json"
-        print("[INPUT] missing file path | 不存在的文件路径")
-        print("[ACTION] call load_vectors | 调用 load_vectors")
-        print("[EXPECTED] FileNotFoundError | 抛出 FileNotFoundError")
+        missing = tmp_path / "not_exists.npz"
         with pytest.raises(FileNotFoundError, match="vectors 文件不存在"):
             load_vectors(str(missing))
-        print("[PASS] missing file handling ok | 缺失文件处理正确\n")
+        print("[PASS] missing file handling ok\n")
+
+    def test_save_load_empty_vectors(self, tmp_path):
+        print("\n[TEST START] Save/load empty VectorStore | 空向量存储往返")
+        store = VectorStore(dim=8, vectors=[], metadata=[], backend="hash")
+        path = tmp_path / "empty.npz"
+        save_vectors(store, str(path))
+        loaded = load_vectors(str(path))
+        assert loaded.dim == 8
+        assert loaded.vectors == []
+        assert loaded.metadata == []
+        print("[PASS] empty vectors ok\n")
 
 
 class TestFaissIntegration:
     def test_build_faiss_index_without_faiss_raises_or_skips(self):
         print("\n[TEST START] FAISS availability check | FAISS 可用性检查")
         store = VectorStore(dim=8, vectors=[[0.0] * 8], metadata=[{"text": "x"}])
-        print("[INPUT] minimal VectorStore | 最小向量存储")
-        print("[ACTION] call build_faiss_index | 调用 build_faiss_index")
         if not has_faiss():
-            print("[EXPECTED] raise RuntimeError when faiss unavailable | faiss 不可用时抛 RuntimeError")
             with pytest.raises(RuntimeError, match="faiss"):
                 build_faiss_index(store)
-            print("[PASS] unavailable faiss handled | faiss 不可用处理正确\n")
+            print("[PASS] unavailable faiss handled\n")
             return
-        print("[EXPECTED] index object created | 成功创建索引对象")
         idx = build_faiss_index(store)
         assert idx is not None
-        print("[PASS] faiss index built | faiss 索引构建成功\n")
+        print("[PASS] faiss index built\n")
 
     @pytest.mark.skipif(importlib.util.find_spec("faiss") is None, reason="需要 faiss 环境")
     def test_faiss_index_roundtrip_and_search(self, tmp_path):
@@ -111,18 +178,15 @@ class TestFaissIntegration:
             {"text": "apple banana", "source": "a.pdf", "page": 1},
             {"text": "orange pear", "source": "b.pdf", "page": 2},
         ]
-        print("[INPUT] 2 chunks + tmp index path | 两个 chunk 与临时索引路径")
-        print("[ACTION] build index -> save -> load -> search | 构建索引并保存加载后检索")
-        store = build_vector_store(chunks, dim=64)
+        store = build_vector_store(chunks, dim=64, backend="hash")
         index = build_faiss_index(store)
         index_path = tmp_path / "faiss.index"
         save_faiss_index(index, str(index_path))
         loaded_index = load_faiss_index(str(index_path))
-        query_vec = embed_text("apple", dim=64)
+        query_vec = embed_text("apple", dim=64, backend="hash")
         results = search_faiss(loaded_index, query_vec, top_k=2)
-        print("[EXPECTED] results list with at least 1 item | 返回至少 1 条检索结果")
         assert isinstance(results, list)
         assert len(results) >= 1
         assert isinstance(results[0][0], int)
         assert isinstance(results[0][1], float)
-        print("[PASS] FAISS roundtrip/search ok | FAISS 往返与检索正确\n")
+        print("[PASS] FAISS roundtrip/search ok\n")

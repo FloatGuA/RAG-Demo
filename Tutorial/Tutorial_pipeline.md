@@ -48,26 +48,26 @@ pipeline/
 ```
 离线构建:
   data/*.pdf/docx/pptx/md
-    → loader.load_documents_from_dir()
-    → chunking.chunk_documents()
-    → embedding.build_vector_store()
-    → [可选] embedding.build_faiss_index()
+    → ingestion.loader.load_documents_from_dir()
+    → ingestion.chunking.chunk_documents()
+    → ingestion.embedding.build_vector_store()
+    → [可选] ingestion.embedding.build_faiss_index()
     → artifacts/ 缓存
 
 在线问答:
   query (str)
-    → retriever.retrieve_top_k()
+    → retrieval.retriever.retrieve_top_k()
     → [可选] min_relevance_score 过滤
-    → prompt.build_prompt()
-    → generator.generate_answer_with_meta()
-    → formatter.format_response()
+    → retrieval.prompt.build_prompt()
+    → retrieval.generator.generate_answer_with_meta()
+    → retrieval.formatter.format_response()
     → {answer, sources, debug}
 ```
 
 ## 6. 模块关系（上下游）
 
 - **被谁依赖**（UI 层）：`cli.py`、`main.py`、`app.py`、`evaluation.py`、`web_app.py`
-- **依赖谁**（功能模块）：`loader`、`chunking`、`embedding`、`retriever`、`prompt`、`generator`、`formatter`
+- **依赖谁**（功能模块）：`ingestion`（loader/chunking/embedding）、`retrieval`（retriever/prompt/generator/formatter）
 - **依赖谁**（配置）：`config.defaults`、`config.paths`
 
 ```
@@ -90,7 +90,7 @@ UI 入口 → pipeline/ → config/ + 功能模块
 ## 9. 技术栈
 
 - Python 标准库：`datetime`、`pathlib`
-- 项目内模块：`loader`、`chunking`、`embedding`、`retriever`、`prompt`、`generator`、`formatter`
+- 项目内模块：`ingestion`、`retrieval`
 - 配置层：`config.defaults`、`config.paths`
 
 ## 10. 端到端流程（这一部分如何工作）

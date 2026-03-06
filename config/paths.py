@@ -4,5 +4,6 @@ from pathlib import Path
 
 CHUNKS_PATH = Path("artifacts/chunks/chunks.json")
 LEGACY_CHUNKS_PATH = Path("storage/chunks.json")
-VECTORS_PATH = Path("artifacts/vectors/vectors.json")
+VECTORS_PATH = Path("artifacts/vectors/vectors.npz")
+LEGACY_VECTORS_PATH = Path("artifacts/vectors/vectors.json")
 FAISS_INDEX_PATH = Path("artifacts/index/faiss.index")

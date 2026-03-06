@@ -2,11 +2,22 @@
 
 from __future__ import annotations
 
-from config.defaults import DEFAULT_CHUNK_SIZE, DEFAULT_EMBED_DIM, DEFAULT_OVERLAP
-from config.paths import CHUNKS_PATH, FAISS_INDEX_PATH, LEGACY_CHUNKS_PATH, VECTORS_PATH
+from config.defaults import DEFAULT_CHUNK_SIZE, DEFAULT_EMBED_BACKEND, DEFAULT_EMBED_DIM, DEFAULT_OVERLAP
+from config.paths import (
+    CHUNKS_PATH,
+    FAISS_INDEX_PATH,
+    LEGACY_CHUNKS_PATH,
+    LEGACY_VECTORS_PATH,
+    VECTORS_PATH,
+)
 
-from chunking import chunk_documents, chunks_to_dicts, dicts_to_chunks, load_chunks, save_chunks
-from embedding import (
+from ingestion import (
+    chunk_documents,
+    chunks_to_dicts,
+    dicts_to_chunks,
+    load_chunks,
+    save_chunks,
+    load_documents_from_dir,
     build_faiss_index,
     build_vector_store,
     has_faiss,
@@ -15,7 +26,6 @@ from embedding import (
     save_faiss_index,
     save_vectors,
 )
-from loader import load_documents_from_dir
 
 
 def build_or_load_chunks(
@@ -50,9 +60,12 @@ def build_or_load_vectors(
     *,
     force_rebuild: bool = False,
     dim: int = DEFAULT_EMBED_DIM,
+    backend: str = DEFAULT_EMBED_BACKEND,
 ) -> tuple[object, str]:
     """
-    返回 (vector_store, source)，source 为 'cache' | 'rebuild'。
+    返回 (vector_store, source)，source 为 'cache' | 'migrated' | 'rebuild'。
+
+    迁移策略：若新 .npz 缓存不存在但旧 .json 缓存存在，自动迁移并保存为 .npz。
     """
     if dim <= 0:
         raise ValueError("embed_dim 必须为正整数")
@@ -61,8 +74,13 @@ def build_or_load_vectors(
         store = load_vectors(str(VECTORS_PATH))
         return store, "cache"
 
+    if not force_rebuild and LEGACY_VECTORS_PATH.exists():
+        store = load_vectors(str(LEGACY_VECTORS_PATH))
+        save_vectors(store, str(VECTORS_PATH))
+        return store, "migrated"
+
     raw_chunks = chunks_to_dicts(chunks)
-    store = build_vector_store(raw_chunks, dim=dim)
+    store = build_vector_store(raw_chunks, dim=dim, backend=backend)
     save_vectors(store, str(VECTORS_PATH))
     return store, "rebuild"
 
@@ -92,6 +110,7 @@ def build_runtime(
     chunk_size: int = DEFAULT_CHUNK_SIZE,
     overlap: int = DEFAULT_OVERLAP,
     embed_dim: int = DEFAULT_EMBED_DIM,
+    embed_backend: str = DEFAULT_EMBED_BACKEND,
 ) -> tuple[object, object | None]:
     """一步构建/加载完整运行时（vector_store + faiss_index）。"""
     chunks, _ = build_or_load_chunks(
@@ -103,6 +122,7 @@ def build_runtime(
         chunks,
         force_rebuild=force_rebuild,
         dim=embed_dim,
+        backend=embed_backend,
     )
     faiss_index, _ = build_or_load_faiss_index(vector_store, force_rebuild=force_rebuild)
     return vector_store, faiss_index
