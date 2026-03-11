@@ -8,11 +8,11 @@
 
 | 字段 | 内容 |
 |------|------|
-| **当前阶段** | Phase 8 完成（Embedding 升级 + npz 向量存储 + 性能优化） |
-| **上次完成** | npz 向量存储（5-10x 加速 + 旧 JSON 向后兼容 + 自动迁移） |
-| **下一步任务** | paragraph-first chunking、评测集扩充与评估改进 |
-| **测试状态** | `python -m pytest tests/ -v` — 80 passed |
-| **最后更新** | 2026-03-06 |
+| **当前阶段** | Phase 10 完成（增量索引 + 多轮上下文 + BM25缓存 + 延迟分解 + Eval Dashboard + Streaming） |
+| **上次完成** | 增量索引（add-only，manifest 追踪新文件，无需全量 re-embed）；114 passed |
+| **下一步任务** | 查询改写（HyDE/query expansion）、会话持久化、评测集扩充 |
+| **测试状态** | `python -m pytest tests/ -v` — 114 passed |
+| **最后更新** | 2026-03-11 |
 
 ---
 
@@ -167,6 +167,63 @@
 
 ---
 
+## Phase 9：Hybrid Retrieval + Cross-Encoder Reranking
+
+- [x] **9.1** BM25 稀疏检索：`_bm25_retrieve`（rank-bm25 库，词频精确匹配）
+- [x] **9.2** RRF 融合：`_rrf_fusion`，Dense + BM25 双路结果合并，rrf_k=60
+- [x] **9.3** Cross-Encoder 重排：`rerank_results`（sentence-transformers CrossEncoder，模块级缓存）；`has_cross_encoder()` 可用性检测
+- [x] **9.4** `hybrid_retrieve` 统一入口：`use_bm25` / `use_rerank` 开关，依赖不可用时优雅降级
+- [x] **9.5** `pipeline/query.py` 透传：`answer_with_store` 新增 `use_hybrid`/`use_rerank`/`rerank_initial_k` 参数；debug info 补充 hybrid/rerank 状态
+- [x] **9.6** CLI 暴露：`query`/`chat`/`eval` 子命令均新增 `--hybrid`/`--rerank`/`--rerank-initial-k`
+- [x] **9.7** Web UI：侧边栏新增"检索增强"区块（hybrid/rerank checkbox + rerank_initial_k 输入框）
+- [x] **9.8** 新增 8 个测试（TestBM25 / TestRRFFusion / TestHybridRetrieve）；90 passed
+- [x] **9.9** 安全修复：`.env` 加入 `.gitignore`、`git rm --cached`、新建 `.env.example`
+
+| 模块 | 文件 | 说明 |
+|------|------|------|
+| BM25 检索 | `retrieval/retriever.py` | `_bm25_retrieve`，rank-bm25 库 |
+| RRF 融合 | `retrieval/retriever.py` | `_rrf_fusion`，双路合并 |
+| Cross-Encoder | `retrieval/retriever.py` | `rerank_results`，模型缓存 |
+| 统一入口 | `retrieval/retriever.py` | `hybrid_retrieve`，优雅降级 |
+
+---
+
+## Phase 10：Evaluation Dashboard + Streaming Output
+
+- [x] **10.1** Web UI 新增 Evaluation Dashboard tab（与 Chat 并列）
+  - `get_available_reports()` 扫描 `artifacts/eval/*.json`，按修改时间倒序
+  - `render_eval_summary()` 五列 `st.metric` 展示汇总指标
+  - `render_eval_cases()` 汇总表格 + 逐条 expander 展开
+  - "Run New Eval" 可展开区块，支持在 UI 内直接触发评估并查看结果
+- [x] **10.2** 流式输出（Streaming Output）
+  - `retrieval/generator.py`：新增 `_call_openai_chat_stream()`（OpenAI `stream=True`）和 `generate_answer_stream()`（yield 文本 chunk，local 降级为单次 yield）
+  - `pipeline/query.py`：新增 `answer_with_store_stream()`，先做检索，再返回 `(stream, sources, partial_debug)`
+  - `web_app.py`：侧边栏新增"流式输出 / Streaming Output"开关（默认开启），启用时用 `st.write_stream()` 逐字显示
+
+| 模块 | 文件 | 说明 |
+|------|------|------|
+| Eval Dashboard | `web_app.py` | 新 tab，历史报告查看 + 在线触发评估 |
+| 流式生成 | `retrieval/generator.py` | `generate_answer_stream()` |
+| 流式管线 | `pipeline/query.py` | `answer_with_store_stream()` |
+
+- [x] **10.3** BM25 索引模块级缓存：`_get_bm25(store)` 按 `id(store)` 缓存 BM25Okapi 实例，同进程内只构建一次
+- [x] **10.4** 多轮上下文传入 LLM：`generate_answer_with_meta` / `generate_answer_stream` 新增 `chat_history` 参数；`answer_with_store` / `answer_with_store_stream` 透传；Web UI `build_chat_history()` 提取最近 6 轮并过滤 Sources 格式
+- [x] **10.5** 延迟分解：`answer_with_store` debug 新增 `latency_retrieval_ms`、`latency_generation_ms`、`latency_total_ms`；Web UI debug 面板展示
+- [x] **10.6** 新增 12 个单元测试（BM25 缓存 ×2、流式生成 ×3、消息构建 ×2、chat_history ×4、延迟面板 ×1）；102 passed
+- [x] **10.7** 增量索引（Incremental Indexing）
+  - `config/paths.py`：新增 `MANIFEST_PATH`
+  - `pipeline/build.py`：`_load_manifest` / `_save_manifest` / `_scan_data_dir` 辅助函数；`build_or_load_chunks` 返回三元组 `(chunks, source, new_chunks)`，source 新增 `"incremental"`；`build_or_load_vectors` 新增 `new_chunks` 参数，增量时只 embed 新 chunk 并 append；`build_runtime` 透传增量信息，增量时自动重建 FAISS
+  - `cli.py`：`build` 命令显示新增 chunk 数
+  - `tests/test_incremental_build.py`：12 个专项测试（manifest 往返 ×3、目录扫描 ×3、增量构建 ×6）；**114 passed**
+
+| 模块 | 文件 | 说明 |
+|------|------|------|
+| 清单追踪 | `pipeline/build.py` | `manifest.json`，记录已处理文件的 mtime |
+| 增量 chunks | `pipeline/build.py` | `build_or_load_chunks` 只处理新文件 |
+| 增量 vectors | `pipeline/build.py` | `build_or_load_vectors(new_chunks=...)` 只 embed 新 chunks |
+
+---
+
 ## 已知问题与注意事项
 
 - `llm_presets.json` 预置配置与实际账号权限可能不一致（模型可选但无订阅权限）
@@ -219,6 +276,6 @@ rag-demo/
 ├── data/                 # 源文档
 ├── eval/                 # 评测集
 ├── artifacts/            # 缓存（chunks/vectors/index/eval）
-├── tests/                # 单元测试（80 passed）
+├── tests/                # 单元测试（90 passed）
 └── Tutorial/             # 模块教程（13 篇）
 ```

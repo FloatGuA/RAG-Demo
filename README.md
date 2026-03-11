@@ -16,7 +16,7 @@ A modular **Retrieval-Augmented Generation (RAG)** system for document-based que
 - [Architecture](#架构图)
 - [Project Summary](#项目总结你现在拿到的能力)
 - [Quick Start](#30-秒快速上手)
-- [CLI Usage](#当前进度phase-6--统一-cli-重构完成)
+- [CLI Usage](#当前进度phase-9--hybrid-retrieval--cross-encoder-reranking-完成)
 - [Evaluation](#评估功能确认系统是否真的有用)
 - [Limitations](#当前不足可改进点)
 - [Roadmap](#可扩展方向建议路线图)
@@ -31,9 +31,15 @@ A modular **Retrieval-Augmented Generation (RAG)** system for document-based que
   多格式文档支持：PDF / PPTX / DOCX / MD
 - **Pluggable LLM providers** — local / OpenAI / OpenAI-compatible APIs (DashScope, etc.)  
   可插拔 LLM：本地 / OpenAI / 兼容 API（如 DashScope）
-- **Offline evaluation framework** — multiple metrics and benchmark datasets  
+- **Hybrid retrieval** — BM25 + dense vector search with RRF fusion, optional Cross-Encoder reranking
+  混合检索：BM25 + 语义向量双路召回（RRF 融合），可选 Cross-Encoder 精排
+- **Streaming output** — real-time token streaming in Web UI via `st.write_stream`; gracefully degrades for local provider
+  流式输出：Web UI 逐字显示 LLM 生成内容，local provider 自动降级
+- **Incremental indexing** — manifest-based change detection; only new files are chunked and embedded on re-build
+  增量索引：manifest 追踪已处理文件，新增资料只处理新文件，无需全量 re-embed
+- **Offline evaluation framework** — multiple metrics and benchmark datasets
   离线评估框架：多指标、可扩展评测集
-- **Layered architecture** — configuration, pipeline logic, and UI separated  
+- **Layered architecture** — configuration, pipeline logic, and UI separated
   分层架构：配置、流水线逻辑与 UI 解耦
 
 ## 文档与进度 (Docs & Progress)
@@ -137,7 +143,7 @@ From offline document processing to interactive QA: a runnable, testable, and ex
 6. **多 Provider LLM** / *Pluggable LLM*：`local/openai/openai_compatible`，`.env` 配置、超时、重试、回退  
 7. **质量保障** / *Quality*：核心模块单元测试，本地快速回归
 
-## 当前进度（Phase 6 — 统一 CLI 重构完成） (Current Status)
+## 当前进度（Phase 10 — Evaluation Dashboard + Streaming Output 完成） (Current Status)
 
 - **统一 CLI** / *Unified CLI*（推荐）：
 
@@ -151,7 +157,12 @@ python cli.py web                             # Start Streamlit UI | 启动 Web 
 
 - **旧入口** / *Legacy*（仍可用）：`python main.py` / `python app.py` / `python evaluation.py` / `streamlit run web_app.py`
 - **数据** / *Data*：文档放在 `data/`（`pdf/pptx/docx/md`），chunk 缓存在 `artifacts/chunks/chunks.json`
-- **测试** / *Tests*：`python -m pytest tests/ -v`（71 passed；`-s` 可看中英双语输出）
+- **混合检索 + 重排** / *Hybrid + Rerank*：
+```bash
+python cli.py query "What is A/B testing?" --hybrid              # BM25 + Dense RRF
+python cli.py query "What is A/B testing?" --hybrid --rerank     # + Cross-Encoder 精排
+```
+- **测试** / *Tests*：`python -m pytest tests/ -v`（114 passed；`-s` 可看中英双语输出）
 
 ## LLM 配置（支持多 Provider） (LLM Configuration)
 
@@ -260,7 +271,7 @@ python evaluation.py --eval-set eval/eval_set.example.json --llm-provider openai
 
 ## 当前不足（可改进点） (Limitations)
 
-1. **检索质量仍偏基础** / *Basic retrieval*：当前以向量相似度 Top-k 为主，缺少重排（rerank）与查询改写。  
+1. **检索质量仍有提升空间** / *Retrieval quality*：已支持 Hybrid + Rerank，但尚缺查询改写（HyDE / query expansion）。
 2. **会话记忆能力有限** / *Limited session memory*：Web UI 仅维护当前会话历史，缺少“长期记忆/跨会话持久化”。  
 3. **评测体系仍需增强** / *Eval gaps*：已有基础离线评估，但尚缺人工标注集扩展、版本间自动对比与可视化看板。  
 4. **生产化能力不足** / *Not production-ready*：尚未引入权限体系、限流、审计日志、服务化部署规范。  
@@ -270,21 +281,19 @@ python evaluation.py --eval-set eval/eval_set.example.json --llm-provider openai
 
 ### P0（短期，1-2 周） / *Short term*
 
-- 接入 **Reranker**（如 cross-encoder）提升 Top-k 结果排序质量。  
-  *Add Reranker (e.g. cross-encoder) to improve Top-k ranking*
-- 增加 **问答评测脚本**（准确率/引用命中率/拒答率），形成可量化回归。  
-  *QA eval script (accuracy / citation hit / refusal rate) for regression*
-- 为 `web_app.py` 增加 **会话持久化**（本地 JSON/SQLite）。  
+- ~~Web UI 增加 **Evaluation Dashboard** tab~~ ✅ 已完成
+- ~~增加 **流式输出**（streaming）~~ ✅ 已完成
+- 为 `web_app.py` 增加 **会话持久化**（本地 JSON/SQLite）。
   *Session persistence for web_app (JSON/SQLite)*
 
 ### P1（中期，2-4 周） / *Mid term*
 
-- 增加 **Hybrid Retrieval**（BM25 + 向量召回融合）提升长尾问题命中率。  
-  *Hybrid retrieval (BM25 + vector) for long-tail queries*
-- 增加 **查询改写与多跳检索**（query rewrite / decomposition）。  
-  *Query rewrite and multi-hop retrieval*
-- 增加 **流式输出** 与更细粒度来源展示（段落级高亮）。  
-  *Streaming output + paragraph-level source highlighting*
+- 增加 **查询改写**（HyDE / query expansion）进一步提升召回质量。
+  *Query rewrite / HyDE for improved recall*
+- 增加 **多跳检索**（query decomposition）。
+  *Multi-hop retrieval via query decomposition*
+- 更细粒度来源展示（段落级高亮）。
+  *Paragraph-level source highlighting*
 
 ### P2（长期） / *Long term*
 

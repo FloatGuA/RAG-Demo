@@ -27,8 +27,12 @@ from config.defaults import (
     DEFAULT_LLM_TIMEOUT,
     DEFAULT_OVERLAP,
     DEFAULT_PREVIEW,
+    DEFAULT_RERANK_INITIAL_K,
+    DEFAULT_RERANK_MODEL,
     DEFAULT_TOP_K,
     DEFAULT_TEMPERATURE,
+    DEFAULT_USE_HYBRID,
+    DEFAULT_USE_RERANK,
 )
 from config.env import get_llm_default, load_env_defaults
 from config.llm_presets import (
@@ -78,13 +82,16 @@ def build(
     VECTORS_PATH.parent.mkdir(parents=True, exist_ok=True)
     FAISS_INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-    chunks, src = build_or_load_chunks(force_rebuild=force_rebuild, chunk_size=chunk_size, overlap=overlap)
-    typer.echo(f"[BUILD] chunks: {len(chunks)} ({src})")
+    chunks, src, new_chunks = build_or_load_chunks(force_rebuild=force_rebuild, chunk_size=chunk_size, overlap=overlap)
+    extra = f", {len(new_chunks)} new" if src == "incremental" else ""
+    typer.echo(f"[BUILD] chunks: {len(chunks)} ({src}{extra})")
 
-    vs, vs_src = build_or_load_vectors(chunks, force_rebuild=force_rebuild, dim=embed_dim, backend=embed_backend)
+    incremental_new = new_chunks if src == "incremental" else None
+    vs, vs_src = build_or_load_vectors(chunks, force_rebuild=force_rebuild, dim=embed_dim, backend=embed_backend, new_chunks=incremental_new)
     typer.echo(f"[BUILD] vectors: dim={vs.dim}, count={len(vs.vectors)} ({vs_src})")
 
-    fi, fi_src = build_or_load_faiss_index(vs, force_rebuild=force_rebuild)
+    faiss_force = force_rebuild or src == "incremental"
+    fi, fi_src = build_or_load_faiss_index(vs, force_rebuild=faiss_force)
     typer.echo(f"[BUILD] FAISS: {fi_src}")
 
     stdout_enc = sys.stdout.encoding or "utf-8"
@@ -99,6 +106,9 @@ def build(
 def query(
     question: str = typer.Argument(..., help="要提问的问题"),
     top_k: int = typer.Option(DEFAULT_TOP_K, help="检索 top_k"),
+    hybrid: bool = typer.Option(DEFAULT_USE_HYBRID, "--hybrid/--no-hybrid", help="启用 BM25 + Dense 混合检索"),
+    rerank: bool = typer.Option(DEFAULT_USE_RERANK, "--rerank/--no-rerank", help="启用 Cross-Encoder 重排"),
+    rerank_initial_k: int = typer.Option(DEFAULT_RERANK_INITIAL_K, help="Rerank 前粗召回数量"),
     llm_provider: str = typer.Option(_provider_default(), help="LLM provider"),
     llm_model: str = typer.Option(_model_default(), help="模型名"),
     llm_base_url: str = typer.Option(_base_url_default(), help="Base URL"),
@@ -123,6 +133,9 @@ def query(
         vs,
         faiss_index=fi,
         top_k=top_k,
+        use_hybrid=hybrid,
+        use_rerank=rerank,
+        rerank_initial_k=rerank_initial_k,
         llm_provider=llm_provider,
         llm_model=llm_model,
         llm_base_url=llm_base_url,
@@ -140,6 +153,9 @@ def query(
 @app.command()
 def chat(
     top_k: int = typer.Option(DEFAULT_TOP_K, help="检索 top_k"),
+    hybrid: bool = typer.Option(DEFAULT_USE_HYBRID, "--hybrid/--no-hybrid", help="启用 BM25 + Dense 混合检索"),
+    rerank: bool = typer.Option(DEFAULT_USE_RERANK, "--rerank/--no-rerank", help="启用 Cross-Encoder 重排"),
+    rerank_initial_k: int = typer.Option(DEFAULT_RERANK_INITIAL_K, help="Rerank 前粗召回数量"),
     llm_provider: str = typer.Option(_provider_default(), help="LLM provider"),
     llm_model: str = typer.Option(_model_default(), help="模型名"),
     llm_base_url: str = typer.Option(_base_url_default(), help="Base URL"),
@@ -172,6 +188,9 @@ def chat(
             vs,
             faiss_index=fi,
             top_k=top_k,
+            use_hybrid=hybrid,
+            use_rerank=rerank,
+            rerank_initial_k=rerank_initial_k,
             llm_provider=llm_provider,
             llm_model=llm_model,
             llm_base_url=llm_base_url,
@@ -191,6 +210,9 @@ def evaluate(
     eval_set: str = typer.Option("eval/eval_set.example.json", help="评测集 JSON 路径"),
     output: str = typer.Option("artifacts/eval/latest_report.json", help="报告输出路径"),
     top_k: int = typer.Option(DEFAULT_TOP_K, help="默认检索 top_k"),
+    hybrid: bool = typer.Option(DEFAULT_USE_HYBRID, "--hybrid/--no-hybrid", help="启用 BM25 + Dense 混合检索"),
+    rerank: bool = typer.Option(DEFAULT_USE_RERANK, "--rerank/--no-rerank", help="启用 Cross-Encoder 重排"),
+    rerank_initial_k: int = typer.Option(DEFAULT_RERANK_INITIAL_K, help="Rerank 前粗召回数量"),
     llm_provider: str = typer.Option(_provider_default(), help="LLM provider"),
     llm_model: str = typer.Option(_model_default(), help="模型名"),
     llm_base_url: str = typer.Option(_base_url_default(), help="Base URL"),
@@ -222,6 +244,9 @@ def evaluate(
             vector_store=vs,
             faiss_index=fi,
             top_k=case_top_k,
+            use_hybrid=hybrid,
+            use_rerank=rerank,
+            rerank_initial_k=rerank_initial_k,
             llm_provider=llm_provider,
             llm_model=llm_model,
             llm_base_url=llm_base_url,

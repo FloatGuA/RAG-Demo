@@ -5,7 +5,7 @@ generator.py 与 formatter.py 单元测试
 import pytest
 
 from retrieval.formatter import format_response
-from retrieval.generator import generate_answer
+from retrieval.generator import _build_messages, generate_answer, generate_answer_stream
 
 
 class TestGenerator:
@@ -53,6 +53,53 @@ class TestGenerator:
         with pytest.raises(ValueError, match="provider"):
             generate_answer("dummy prompt", contexts=contexts, provider="bad_provider")
         print("[PASS] invalid provider validation ok | provider 校验正确\n")
+
+
+class TestBuildMessages:
+    def test_build_messages_no_history(self):
+        print("\n[TEST START] build_messages without history | 无历史时构建消息")
+        msgs = _build_messages("hello", None)
+        assert msgs[0]["role"] == "system"
+        assert msgs[-1] == {"role": "user", "content": "hello"}
+        assert len(msgs) == 2
+        print("[PASS] no-history message structure ok\n")
+
+    def test_build_messages_with_history(self):
+        print("\n[TEST START] build_messages inserts history between system and user | 历史插入正确位置")
+        history = [
+            {"role": "user", "content": "q1"},
+            {"role": "assistant", "content": "a1"},
+        ]
+        msgs = _build_messages("q2", history)
+        assert msgs[0]["role"] == "system"
+        assert msgs[1] == {"role": "user", "content": "q1"}
+        assert msgs[2] == {"role": "assistant", "content": "a1"}
+        assert msgs[3] == {"role": "user", "content": "q2"}
+        print("[PASS] history insertion order ok\n")
+
+
+class TestGenerateAnswerStream:
+    def test_stream_no_context_yields_idk(self):
+        print("\n[TEST START] stream with no context yields I don't know | 无上下文流式返回 IDK")
+        chunks = list(generate_answer_stream("test", contexts=[], provider="local"))
+        assert chunks == ["I don't know"]
+        print("[PASS] no-context stream ok\n")
+
+    def test_stream_local_yields_single_chunk(self):
+        print("\n[TEST START] stream local provider yields single chunk | local 流式单次 yield")
+        contexts = [{"text": "FAISS is fast. It handles billions of vectors."}]
+        chunks = list(generate_answer_stream("test", contexts=contexts, provider="local"))
+        assert len(chunks) == 1
+        assert "FAISS" in chunks[0]
+        print("[PASS] local stream single-chunk ok\n")
+
+    def test_stream_accepts_chat_history(self):
+        print("\n[TEST START] stream accepts chat_history without error | 流式接受 chat_history 不报错")
+        history = [{"role": "user", "content": "prev"}, {"role": "assistant", "content": "prev_ans"}]
+        contexts = [{"text": "A sentence about caching."}]
+        chunks = list(generate_answer_stream("test", contexts=contexts, provider="local", chat_history=history))
+        assert isinstance(chunks, list) and len(chunks) >= 1
+        print("[PASS] chat_history accepted ok\n")
 
 
 class TestFormatter:

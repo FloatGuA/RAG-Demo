@@ -2,7 +2,19 @@
   "permissions": {
     "allow": [
       "Bash(python:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(git rm:*)",
+      "Bash(mkdir -p \"C:/Users/86579/.claude/skills/doc-sync-workspace/iteration-1/eval-phase-sync/with_skill/outputs\" && mkdir -p \"C:/Users/86579/.claude/skills/doc-sync-workspace/iteration-1/eval-phase-sync/without_skill/outputs\" && mkdir -p \"C:/Users/86579/.claude/skills/doc-sync-workspace/iteration-1/eval-single-doc/with_skill/outputs\" && mkdir -p \"C:/Users/86579/.claude/skills/doc-sync-workspace/iteration-1/eval-single-doc/without_skill/outputs\" && mkdir -p \"C:/Users/86579/.claude/skills/doc-sync-workspace/iteration-1/eval-technical-sync/with_skill/outputs\" && mkdir -p \"C:/Users/86579/.claude/skills/doc-sync-workspace/iteration-1/eval-technical-sync/without_skill/outputs\" && echo \"dirs created\")",
+      "Bash(cd \"C:/Users/86579/.claude/plugins/cache/claude-plugins-official/skill-creator/205b6e0b3036/skills/skill-creator\" && PYTHONUTF8=1 python eval-viewer/generate_review.py \"C:/Users/86579/.claude/skills/doc-sync-workspace/iteration-1\" --skill-name \"doc-sync\" --benchmark \"C:/Users/86579/.claude/skills/doc-sync-workspace/iteration-1/benchmark.json\" --static \"C:/Users/86579/.claude/skills/doc-sync-workspace/doc-sync-review.html\" 2>&1)",
+      "Bash(start \"\" \"C:/Users/86579/.claude/skills/doc-sync-workspace/doc-sync-review.html\")",
+      "Bash(ls /c/Coding/RAG-Demo/*.md)",
+      "Bash(git -C \"C:/Coding/RAG-Demo\" rev-parse --show-toplevel)",
+      "Bash(git -C \"C:/Coding/RAG-Demo\" log --oneline 2>&1 | head -5)",
+      "Bash(git -C \"C:/Coding/RAG-Demo\" diff eb167d9 HEAD --stat 2>&1)",
+      "Bash(git -C \"C:/Coding/RAG-Demo\" status --short 2>&1)",
+      "Bash(git -C \"C:/Coding/RAG-Demo\" log --oneline -3 2>&1)",
+      "Bash(git -C \"C:/Coding/RAG-Demo\" add . 2>&1)"
     ]
   }
 }

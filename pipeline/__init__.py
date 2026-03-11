@@ -6,4 +6,4 @@ from pipeline.build import (  # noqa: F401
     build_or_load_vectors,
     build_runtime,
 )
-from pipeline.query import answer_with_store, render_response  # noqa: F401
+from pipeline.query import answer_with_store, answer_with_store_stream, render_response  # noqa: F401

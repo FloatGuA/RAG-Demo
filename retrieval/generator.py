@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 import re
 import time
+from collections.abc import Iterator
 
 try:
     from openai import OpenAI
@@ -70,6 +71,17 @@ def _resolve_provider(provider: str | None, use_openai: bool) -> str:
     return resolved
 
 
+def _build_messages(prompt: str, chat_history: list[dict] | None) -> list[dict]:
+    """组装 OpenAI messages，将历史对话插入系统消息和当前问题之间。"""
+    messages: list[dict] = [
+        {"role": "system", "content": "You are a helpful course assistant."}
+    ]
+    if chat_history:
+        messages.extend(chat_history)
+    messages.append({"role": "user", "content": prompt})
+    return messages
+
+
 def _call_openai_chat(
     *,
     prompt: str,
@@ -78,6 +90,7 @@ def _call_openai_chat(
     api_key: str | None,
     base_url: str | None,
     timeout: float,
+    chat_history: list[dict] | None = None,
 ):
     if OpenAI is None:
         raise RuntimeError("未安装 openai 依赖，请先执行: python -m pip install openai")
@@ -95,11 +108,93 @@ def _call_openai_chat(
     return client.chat.completions.create(
         model=model,
         temperature=temperature,
-        messages=[
-            {"role": "system", "content": "You are a helpful course assistant."},
-            {"role": "user", "content": prompt},
-        ],
+        messages=_build_messages(prompt, chat_history),
     )
+
+
+def _call_openai_chat_stream(
+    *,
+    prompt: str,
+    model: str,
+    temperature: float,
+    api_key: str | None,
+    base_url: str | None,
+    timeout: float,
+    chat_history: list[dict] | None = None,
+) -> Iterator[str]:
+    """与 _call_openai_chat 相同参数，但返回文本 chunk 的迭代器。"""
+    if OpenAI is None:
+        raise RuntimeError("未安装 openai 依赖，请先执行: python -m pip install openai")
+
+    client_kwargs: dict = {
+        "api_key": api_key or "DUMMY_KEY_FOR_LOCAL",
+        "timeout": timeout,
+        "max_retries": 0,
+    }
+    if base_url:
+        client_kwargs["base_url"] = base_url
+
+    client = OpenAI(**client_kwargs)
+    stream = client.chat.completions.create(
+        model=model,
+        temperature=temperature,
+        stream=True,
+        messages=_build_messages(prompt, chat_history),
+    )
+    for chunk in stream:
+        delta = chunk.choices[0].delta.content
+        if delta:
+            yield delta
+
+
+def generate_answer_stream(
+    prompt: str,
+    contexts: list[dict] | None = None,
+    *,
+    provider: str | None = None,
+    use_openai: bool = False,
+    model: str = "gpt-4o-mini",
+    temperature: float = 0.2,
+    base_url: str | None = None,
+    api_key: str | None = None,
+    api_key_env: str = "OPENAI_API_KEY",
+    timeout: float = 120.0,
+    fallback_to_local: bool = True,
+    chat_history: list[dict] | None = None,
+) -> Iterator[str]:
+    """
+    流式生成答案，yield 文本 chunk。
+    local provider 或无上下文时退化为单次 yield 完整答案。
+    """
+    chosen_provider = _resolve_provider(provider, use_openai)
+
+    if not contexts or chosen_provider == "local":
+        yield _local_fallback_answer(contexts)
+        return
+
+    _load_dotenv_if_present()
+    resolved_key = api_key or os.getenv(api_key_env) or os.getenv("OPENAI_API_KEY")
+    if chosen_provider == "openai" and not resolved_key:
+        if fallback_to_local:
+            yield _local_fallback_answer(contexts)
+            return
+        raise RuntimeError(f"未检测到 API Key，请设置环境变量: {api_key_env}")
+
+    try:
+        yield from _call_openai_chat_stream(
+            prompt=prompt,
+            model=model,
+            temperature=temperature,
+            api_key=resolved_key,
+            base_url=base_url,
+            timeout=timeout,
+            chat_history=chat_history,
+        )
+    except Exception as exc:  # pragma: no cover - 依赖外部网络/服务
+        if fallback_to_local:
+            yield _local_fallback_answer(contexts)
+        else:
+            raise RuntimeError(f"LLM 流式调用失败（provider={chosen_provider}）: {exc}") from exc
 
 
 def generate_answer(
@@ -116,6 +211,7 @@ def generate_answer(
     timeout: float = 120.0,
     max_retries: int = 1,
     fallback_to_local: bool = True,
+    chat_history: list[dict] | None = None,
 ) -> str:
     """
     统一回答生成入口（可插拔 provider）。
@@ -138,6 +234,7 @@ def generate_answer(
         timeout=timeout,
         max_retries=max_retries,
         fallback_to_local=fallback_to_local,
+        chat_history=chat_history,
     )
     return answer
 
@@ -156,6 +253,7 @@ def generate_answer_with_meta(
     timeout: float = 120.0,
     max_retries: int = 1,
     fallback_to_local: bool = True,
+    chat_history: list[dict] | None = None,
 ) -> tuple[str, dict]:
     meta: dict = {
         "requested_provider": None,
@@ -214,6 +312,7 @@ def generate_answer_with_meta(
                 api_key=resolved_key,
                 base_url=base_url,
                 timeout=remaining,
+                chat_history=chat_history,
             )
             content = resp.choices[0].message.content or ""
             normalized = content.strip()

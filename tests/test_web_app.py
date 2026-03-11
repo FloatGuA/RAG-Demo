@@ -7,6 +7,7 @@ from pathlib import Path
 from config.env import load_env_defaults
 from web_app import (
     build_assistant_message,
+    build_chat_history,
     format_sources_lines,
     format_debug_lines,
     get_default_base_url,
@@ -112,6 +113,57 @@ class TestWebAppHelpers:
         assert "Retrieved chunks" in text
         assert "qwen-plus" in text
         print("[PASS] debug line rendering ok | 调试行渲染正确\n")
+
+    def test_build_chat_history_extracts_roles(self):
+        print("\n[TEST START] build_chat_history extracts user/assistant roles | 提取对话角色正确")
+        messages = [
+            {"role": "user", "content": "hello", "timestamp": "t"},
+            {"role": "assistant", "content": "hi", "answer": "hi", "timestamp": "t", "debug": {}},
+        ]
+        history = build_chat_history(messages)
+        assert history[0] == {"role": "user", "content": "hello"}
+        assert history[1] == {"role": "assistant", "content": "hi"}
+        print("[PASS] role extraction ok\n")
+
+    def test_build_chat_history_prefers_answer_field(self):
+        print("\n[TEST START] build_chat_history uses answer field over full content | 优先使用 answer 字段")
+        messages = [
+            {"role": "user", "content": "q"},
+            {"role": "assistant", "content": "ans\n\nSources:\n- x.pdf (page 1)", "answer": "ans", "debug": {}},
+        ]
+        history = build_chat_history(messages)
+        assert history[1]["content"] == "ans"
+        print("[PASS] answer field preferred ok\n")
+
+    def test_build_chat_history_respects_max_turns(self):
+        print("\n[TEST START] build_chat_history respects max_turns | 遵守最大轮数限制")
+        messages = []
+        for i in range(10):
+            messages.append({"role": "user", "content": f"q{i}"})
+            messages.append({"role": "assistant", "content": f"a{i}", "answer": f"a{i}", "debug": {}})
+        history = build_chat_history(messages, max_turns=2)
+        assert len(history) <= 4  # 2 turns × 2 messages
+        print("[PASS] max_turns limit ok\n")
+
+    def test_build_chat_history_empty_messages(self):
+        print("\n[TEST START] build_chat_history with empty messages | 空消息列表返回空列表")
+        history = build_chat_history([])
+        assert history == []
+        print("[PASS] empty messages ok\n")
+
+    def test_format_debug_lines_includes_latency(self):
+        print("\n[TEST START] format_debug_lines shows latency breakdown | 调试行包含延迟分解")
+        debug = {
+            "generated_at": "2026-03-11 10:00:00",
+            "latency_retrieval_ms": 42,
+            "latency_generation_ms": 380,
+            "latency_total_ms": 422,
+        }
+        lines = format_debug_lines(debug)
+        text = "\n".join(lines)
+        assert "42" in text and "380" in text
+        assert "延迟分解 / Latency" in text
+        print("[PASS] latency in debug lines ok\n")
 
     def test_now_timestamp_has_expected_format(self):
         print("\n[TEST START] now_timestamp format check | 时间戳格式检查")
